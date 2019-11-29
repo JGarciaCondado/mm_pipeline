@@ -49,8 +49,8 @@ class Fluorescent_microscope:
 
         # Check that image resolution is diffraciton limited
         if(self.rayleigh_criterion * self.m / 2 < self.pixel_size):
-            warnings.warn("The pixels are smaller than the nyquist frequency of
-                          diffraction of light")
+            warnings.warn("The pixels are smaller than the nyquist frequency"
+                          " of diffraction of light")
 
     def image_bacteria(self, bacteria):
         """Returns an image of the bacteria.
@@ -86,17 +86,17 @@ class Fluorescent_microscope:
         y_pixels = int(self.m * (2 * bacteria.r + bacteria.l) /
                        self.pixel_size) + zero_padding
 
-        self.image = 255 * np.ones((x_pixels, y_pixels))
+        self.image = np.zeros((y_pixels, x_pixels))
 
         # Populate image with pixel values of 255 where there are samples
         for sample in bacteria.b_samples:
-            location_x = int(
+            location_y = int(
                 self.m * (sample[0] + bacteria.r + bacteria.l / 2)
                 / self.pixel_size) + int(zero_padding / 2)
-            location_y = int(
-                self.m * (sample[1] + bacteria.r) / self.pixel_size)
-            + int(zero_padding / 2)
-            self.image[location_y, location_x] = 0
+            location_x = int(
+                self.m * (sample[1] + bacteria.r) / self.pixel_size) + \
+                int(zero_padding/2)
+            self.image[location_y, location_x] = 255
 
         # Calculate sigma of blur to match energy of Airy Disk with 2D gaussian
         sigma_blur = self.rayleigh_criterion * self.m / 1.476
@@ -114,7 +114,7 @@ class Fluorescent_microscope:
         """
 
         # Create red color map
-        colors = [(1, 0, 0), (0, 0, 0)]
+        colors = [(0, 0, 0), (1, 0, 0)]
         cm = LinearSegmentedColormap.from_list('test', colors, N=255)
 
         # Display image
