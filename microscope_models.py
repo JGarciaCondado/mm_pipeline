@@ -13,6 +13,7 @@ import numpy as np
 from scipy.ndimage.filters import gaussian_filter
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
+from tqdm import tqdm
 
 
 class Fluorescent_microscope:
@@ -73,35 +74,37 @@ class Fluorescent_microscope:
             raise ValueError(
                 "Bacteria and microscope must have compatible wavelengths")
 
+        # Calculate sigma of blur to fit 2D Guassian to Airy Disk 
+        sigma_blur = self.rayleigh_criterion / 3
+
         # set padding level
-        zero_padding = 30
+        zero_padding = 5
 
         # populate image with correct number of pixels
-        # x-direction is total length of bacteria*magnification / length of
+        # x-direction is total width of bacteria*magnification / length of
         # pixel width
-        x_pixels = int(2 * bacteria.r * self.m /
-                       self.pixel_size) + zero_padding
+        x_pixels = round(2 * bacteria.r * self.m /
+                       self.pixel_size) + zero_padding*2
         # y-direction is total height of bacteria*magnification / length of
         # pixel height
-        y_pixels = int(self.m * (2 * bacteria.r + bacteria.l) /
-                       self.pixel_size) + zero_padding
+        y_pixels = round(self.m * (2 * bacteria.r + bacteria.l) /
+                       self.pixel_size) + zero_padding*2
 
         self.image = np.zeros((y_pixels, x_pixels))
 
-        # Populate image with pixel values of 255 where there are samples
-        for sample in bacteria.b_samples:
-            location_y = int(
-                self.m * (sample[0] + bacteria.r + bacteria.l / 2)
-                / self.pixel_size) + int(zero_padding / 2)
-            location_x = int(
-                self.m * (sample[1] + bacteria.r) / self.pixel_size) + \
-                int(zero_padding/2)
-            self.image[location_y, location_x] = 255
+        for x, y, z in tqdm(np.array(bacteria.b_samples)):
+            number_photons = np.random.poisson(255)
+            for iter in range(number_photons):
+                photon_x, photon_y = np.random.multivariate_normal([x,y], [[sigma_blur**2, 0], [0, sigma_blur**2]])
+                location_x = round(self.m*(photon_x+bacteria.r+bacteria.l/2)/self.pixel_size) \
+                          + zero_padding
+                location_y = round(self.m*(photon_y+bacteria.r)/self.pixel_size) \
+                          + zero_padding
+                self.image[int(location_x), int(location_y)] += 1
 
-        # Calculate sigma of blur to match energy of Airy Disk with 2D gaussian
-        sigma_blur = self.rayleigh_criterion * self.m / 1.476
+        self.image = np.round(self.image*255/np.amax(self.image)) + np.random.poisson(10, (y_pixels, x_pixels))
 
-        return gaussian_filter(self.image, sigma=sigma_blur)
+        return self.image
 
     def display_image(self, image):
         """Displays image.
@@ -115,7 +118,7 @@ class Fluorescent_microscope:
 
         # Create red color map
         colors = [(0, 0, 0), (1, 0, 0)]
-        cm = LinearSegmentedColormap.from_list('test', colors, N=255)
+        cm = LinearSegmentedColormap.from_list('test', colors, N=np.amax(image))
 
         # Display image
         plt.imshow(image, cmap=cm, origin="lower")
