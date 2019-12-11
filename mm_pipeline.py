@@ -16,7 +16,6 @@ from bacteria_model import Fluorescent_bacteria
 import getopt
 import sys
 
-
 def main(arg_list):
     """Parse the command line options and arguments specified in arg_list.
 
@@ -43,7 +42,7 @@ def main(arg_list):
     # Ball park values
     ex_wv = 0.8  # emmitted wavelength by microscope for excitation
     em_wv = 0.59  # emitted wavelength due to fluorescence
-    pixel_size = 1  # pixel size
+    pixel_size = 4.4  # pixel size
     NA = 0.95  # Numerical aperture
     magnification = 40  # magnification
 

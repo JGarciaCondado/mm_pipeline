@@ -78,7 +78,7 @@ class Fluorescent_microscope:
         sigma_blur = self.rayleigh_criterion / 3
 
         # set padding level
-        zero_padding = 5
+        zero_padding = 10
 
         # populate image with correct number of pixels
         # x-direction is total width of bacteria*magnification / length of
@@ -105,6 +105,41 @@ class Fluorescent_microscope:
         self.image = np.round(self.image*255/np.amax(self.image)) + np.random.poisson(10, (y_pixels, x_pixels))
 
         return self.image
+
+    def image_bacteria_conv(self, bacteria):
+        # Check that bacteria emitted wavelength is compatible with microscope
+        if (bacteria.em_wavelength != self.em_wavelength or
+                bacteria.ex_wavelength != self.ex_wavelength):
+            raise ValueError(
+                "Bacteria and microscope must have compatible wavelengths")
+
+        # Calculate sigma of blur to fit 2D Guassian to Airy Disk 
+        sigma_blur = self.m*self.rayleigh_criterion / (3*self.pixel_size)
+
+        # set padding level
+        zero_padding = 5
+
+        # populate image with correct number of pixels
+        # x-direction is total width of bacteria*magnification / length of
+        # pixel width
+        x_pixels = round(2 * bacteria.r * self.m /
+                       self.pixel_size) + zero_padding*2
+        # y-direction is total height of bacteria*magnification / length of
+        # pixel height
+        y_pixels = round(self.m * (2 * bacteria.r + bacteria.l) /
+                       self.pixel_size) + zero_padding*2
+
+        self.image = np.zeros((y_pixels, x_pixels))
+
+        for x, y, z in tqdm(np.array(bacteria.b_samples)):
+            location_x = round(self.m*(x+bacteria.r+bacteria.l/2)/self.pixel_size) \
+                          + zero_padding
+            location_y = round(self.m*(y+bacteria.r)/self.pixel_size) \
+                          + zero_padding
+            self.image[int(location_x), int(location_y)] += np.random.poisson(255)
+
+        return gaussian_filter(self.image, sigma=sigma_blur)
+
 
     def display_image(self, image):
         """Displays image.
