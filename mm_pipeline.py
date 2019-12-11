@@ -11,10 +11,11 @@
  """
 
 from microscope_models import Fluorescent_microscope
-from bacteria_model import Fluorescent_bacteria
+from bacteria_model import Fluorescent_bacteria_spline
 
 import getopt
 import sys
+import numpy as np
 
 def main(arg_list):
     """Parse the command line options and arguments specified in arg_list.
@@ -46,13 +47,16 @@ def main(arg_list):
     NA = 0.95  # Numerical aperture
     magnification = 40  # magnification
 
+    spline = [[x, -x**2/9+1*x/3, 0.0] for x in np.arange(301)/100]
+#    spline = [[x, 0, 0] for x in np.arange(300)/100]
+
     for option, path in options:
         if option == "-h":  # print the usage message
             print(usage_message)
             sys.exit()
     if not options:
         # Create bacteria model
-        bacteria = Fluorescent_bacteria(r_b, l_b, ex_wv, em_wv, n_b)
+        bacteria = Fluorescent_bacteria_spline(r_b, l_b, spline, ex_wv, em_wv, n_b)
         # Create microscope model
         microscope = Fluorescent_microscope(
             magnification, NA, ex_wv, em_wv, pixel_size)
@@ -61,9 +65,9 @@ def main(arg_list):
         # Show 2D dots by ignoring z-coordinate
         bacteria.plot_2D()
         # Create image
-        image = microscope.image_bacteria(bacteria)
+#        image = microscope.image_bacteria(bacteria)
         # Display image
-        microscope.display_image(image)
+#        microscope.display_image(image)
 
 
 if __name__ == "__main__":
