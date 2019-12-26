@@ -10,7 +10,7 @@
  Run pipeline: mm_pipeline.py -r
  """
 
-from microscope_models import Fluorescent_microscope
+from microscope_models import Fluorescent_microscope_spline
 from bacteria_model import Fluorescent_bacteria_spline
 
 import getopt
@@ -58,16 +58,17 @@ def main(arg_list):
         # Create bacteria model
         bacteria = Fluorescent_bacteria_spline(r_b, l_b, spline, ex_wv, em_wv, n_b)
         # Create microscope model
-        microscope = Fluorescent_microscope(
+        microscope = Fluorescent_microscope_spline(
             magnification, NA, ex_wv, em_wv, pixel_size)
         # Show 3D dots from Rejection sampling
-        bacteria.plot_3D()
+#        bacteria.plot_3D()
         # Show 2D dots by ignoring z-coordinate
-        bacteria.plot_2D()
+#        bacteria.plot_2D()
         # Create image
-#        image = microscope.image_bacteria(bacteria)
+        image = microscope.image_bacteria(bacteria)
+        print(image)
         # Display image
-#        microscope.display_image(image)
+        microscope.display_image(image)
 
 
 if __name__ == "__main__":
