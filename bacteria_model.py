@@ -13,7 +13,7 @@ from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-class Fluorescent_bacteria:
+class Fluorescent_bacteria_rod:
     """ Build an epi-illumination microscope model.
 
     The model deals with both generating images from bacteria models
@@ -199,6 +199,120 @@ class Fluorescent_bacteria_spline:
                         i += 1
                         pbar.update(1)
                         break
+        else:
+            #TODO copy above
+            pass
+
+        self.b_samples_x, self.b_samples_y, self.b_samples_z = list(
+            zip(*self.b_samples))
+
+
+#FIX so that limits are different but spacing between ticks the same
+    def plot_3D(self):
+        """ Plot samples in a 3D plot."""
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+        ax.scatter(
+            self.b_samples_x,
+            self.b_samples_y,
+            self.b_samples_z,
+            s=1,
+            c='r',
+            marker='o')
+
+        ax.set_xlim([np.amin(self.b_samples), np.amax(self.b_samples)])
+        ax.set_ylim([np.amin(self.b_samples), np.amax(self.b_samples)])
+        ax.set_zlim([np.amin(self.b_samples), np.amax(self.b_samples)])
+
+        plt.show()
+
+    def plot_2D(self):
+        """ Plot samples in a 2D plot ignoring z-coordinate."""
+        plt.scatter(self.b_samples_x, self.b_samples_y, s=1)
+        plt.xlim(np.amin(self.b_samples), np.amax(self.b_samples))
+        plt.ylim(np.amin(self.b_samples), np.amax(self.b_samples))
+        plt.show()
+
+class Fluorescent_bacteria_spline_fn:
+    """ Build an epi-illumination microscope model.
+
+    The model deals with both generating images from bacteria models
+    and displaying such images.
+
+    Parameters
+    ----------
+    r: radius of caps of rod-shaped bacteria (micrometers)
+    l: length of cylinder of rod_shaped bacteria (micrometers)
+    em_wavelength: emitted wavelength captured by microscope (micrometers)
+    ex_wavelength: wavelength of light emitted by microscope (micrometers)
+    n: number of samples to sample
+    n_total: True if n denotes the total numer of accepted samples or false
+             if it denotes the total number of sampling iterations
+
+    Public methods
+    --------------
+    plot_3D(self): Produces a 3D plot of samples within bacteria.
+    plot_2D(self): Produces a 2D plot of samples ignoring z-coordinates.
+    """
+
+    def __init__(self, r, l, dx, fn, ex_wavelength, em_wavelength, n, n_total=True):
+        """Initialise constants."""
+
+        # Check that length is greater than radius
+        if(l < r):
+            raise ValueError("The length must be bigger than the radius")
+
+        self.r = r
+        self.l = l
+        self.n = n
+        self.fn = fn
+        self.spline = [[x, fn(x), 0.0] for x in np.arange(0, self.l+dx, dx)]
+        self.ex_wavelength = ex_wavelength
+        self.em_wavelength = em_wavelength
+        # Arrays to store the bacteria samples
+        self.b_samples = []
+        self.b_samples_x = []
+        self.b_samples_y = []
+        self.b_samples_z = []
+        # Obtain samples within the bacteria
+        self.sample(n_total)
+
+    def sample(self, n_total):
+        """ Samples point within the bacteria cell boundary.
+
+        This method is used when initializign a bacteria to generate samples
+        that represent infinitesimally small light sources of fluorescence.
+        """
+
+        # Sample until certain number of iteration or a certain number of
+        # samples obtaines
+        if (n_total):
+            i = 0
+            pbar = tqdm(total=self.n)
+            [x_max, y_max, z_max] = np.amax(self.spline, axis=0) + self.r
+            [x_min, y_min, z_min] = np.amin(self.spline, axis=0) - self.r
+
+            while(i < self.n):
+                # lengthscale is alawys gonna be bigger
+                x_sample = np.random.uniform(x_min, x_max)
+                y_sample = np.random.uniform(y_min, y_max)
+                z_sample = np.random.uniform(y_min, y_max)
+                sample = np.array([x_sample, y_sample, z_sample])
+                if x_sample < 0.0:
+                    if np.linalg.norm(sample-np.array([0.0, 0.0, 0.0])) < self.r:
+                        self.b_samples.append(sample)
+                        i += 1
+                        pbar.update(1)
+                elif x_sample > self.l:
+                    if np.linalg.norm(sample-np.array([self.l, 0.0, 0.0])) < self.r:
+                        self.b_samples.append(sample)
+                        i += 1
+                        pbar.update(1)
+                elif np.linalg.norm(sample-np.array([x_sample, self.fn(x_sample), 0.0])) < self.r:
+                    self.b_samples.append(sample)
+                    i += 1
+                    pbar.update(1)
         else:
             #TODO copy above
             pass
