@@ -258,7 +258,7 @@ class Fluorescent_microscope_spline:
                 "Bacteria and microscope must have compatible wavelengths")
 
         # Calculate sigma of blur to fit 2D Guassian to Airy Disk 
-        sigma_blur = self.m*self.rayleigh_criterion / (3*self.pixel_size)
+        sigma_blur = self.m*self.rayleigh_criterion / (2.5*self.pixel_size)
 
         # set padding level
         zero_padding = 5
@@ -282,8 +282,10 @@ class Fluorescent_microscope_spline:
                           + zero_padding
             self.image[int(location_x), int(location_y)] += np.random.poisson(255)
 
-        return gaussian_filter(self.image, sigma=sigma_blur)
-
+        self.image = gaussian_filter(self.image, sigma=sigma_blur)
+        self.image = np.round(self.image*np.random.poisson(350)/np.amax(self.image))
+        self.image = self.image + np.random.poisson(250, (int(y_pixels), int(x_pixels)))
+        return self.image
 
     def display_image(self, image):
         """Displays image.
