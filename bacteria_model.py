@@ -256,7 +256,7 @@ class Fluorescent_bacteria_spline_fn:
     plot_2D(self): Produces a 2D plot of samples ignoring z-coordinates.
     """
 
-    def __init__(self, r, l, dx, fn, ex_wavelength, em_wavelength, n, n_total=True):
+    def __init__(self, r, l, dx, fn, theta, ex_wavelength, em_wavelength, n, n_total=True):
         """Initialise constants."""
 
         # Check that length is greater than radius
@@ -267,6 +267,8 @@ class Fluorescent_bacteria_spline_fn:
         self.l = l
         self.n = n
         self.fn = fn
+        self.theta = theta*np.pi/180
+        self.rotation_matrix = np.array(((np.cos(self.theta), -np.sin(self.theta), 0.0), (np.sin(self.theta), np.cos(self.theta), 0.0), (0.0, 0.0, 1.0)))
         self.spline = [[x, fn(x), 0.0] for x in np.arange(0, self.l+dx, dx)]
         self.ex_wavelength = ex_wavelength
         self.em_wavelength = em_wavelength
@@ -301,16 +303,19 @@ class Fluorescent_bacteria_spline_fn:
                 sample = np.array([x_sample, y_sample, z_sample])
                 if x_sample < 0.0:
                     if np.linalg.norm(sample-np.array([0.0, 0.0, 0.0])) < self.r:
-                        self.b_samples.append(sample)
+                        rotated_sample = self.rotation_matrix.dot(sample)
+                        self.b_samples.append(rotated_sample)
                         i += 1
                         pbar.update(1)
                 elif x_sample > self.l:
                     if np.linalg.norm(sample-np.array([self.l, 0.0, 0.0])) < self.r:
-                        self.b_samples.append(sample)
+                        rotated_sample = self.rotation_matrix.dot(sample)
+                        self.b_samples.append(rotated_sample)
                         i += 1
                         pbar.update(1)
                 elif np.linalg.norm(sample-np.array([x_sample, self.fn(x_sample), 0.0])) < self.r:
-                    self.b_samples.append(sample)
+                    rotated_sample = self.rotation_matrix.dot(sample)
+                    self.b_samples.append(rotated_sample)
                     i += 1
                     pbar.update(1)
         else:
