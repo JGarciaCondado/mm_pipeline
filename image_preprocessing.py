@@ -74,8 +74,10 @@ def find_cells(ch):
         [0] + positions, positions) if _pos - _last_pos > 10 and _pos - _last_pos < 50]
 
 def image_find_cells(im, args, position):
+
     debug("File: %s" % args.image)
     debug("Position: %s" % position)
+
     # Apply rotation to both images
     im_rot = apply_rotate_and_cleanup(
                 im, find_rotation(im))[0]
@@ -98,6 +100,13 @@ def image_find_cells(im, args, position):
 
     for avg_position in avg_positions:
         n_channels += 1
+
+        # Avoid indexing outside of bounds
+        if avg_position < channel_width / 2:
+            avg_position = channel_width / 2
+        elif avg_position > im_rot_cr.shape[0] - channel_width / 2:
+            avg_position = im_rot_cr.shape[0] - channel_width / 2
+
         # Get channel in the image
         channel = im_rot_cr[:, int(avg_position - channel_width / 2):
                                int(avg_position + channel_width / 2)]
