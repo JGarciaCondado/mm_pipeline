@@ -13,7 +13,8 @@ import numpy as np
 from scipy.ndimage.filters import gaussian_filter
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
-from tqdm import tqdm
+from matplotlib.path import Path
+import matplotlib.patches as patches
 
 
 class Fluorescent_microscope:
@@ -92,7 +93,7 @@ class Fluorescent_microscope:
 
         self.image = np.zeros((y_pixels, x_pixels))
 
-        for x, y, z in tqdm(np.array(bacteria.b_samples)):
+        for x, y, z in np.array(bacteria.b_samples):
             number_photons = np.random.poisson(255)
             for iter in range(number_photons):
                 photon_x, photon_y = np.random.multivariate_normal([x,y], [[sigma_blur**2, 0], [0, sigma_blur**2]])
@@ -131,7 +132,7 @@ class Fluorescent_microscope:
 
         self.image = np.zeros((y_pixels, x_pixels))
 
-        for x, y, z in tqdm(np.array(bacteria.b_samples)):
+        for x, y, z in np.array(bacteria.b_samples):
             location_x = round(self.m*(x+bacteria.r+bacteria.l/2)/self.pixel_size) \
                           + zero_padding
             location_y = round(self.m*(y+bacteria.r)/self.pixel_size) \
@@ -187,6 +188,7 @@ class Fluorescent_microscope_spline:
         self.ex_wavelength = ex_wavelength  # wavelength emitted by microscope
         self.pixel_size = pixel_size  # assuming pizels are square
         self.image = []
+        self.padding = 3
 
         # Calculate rayleigh_criterion for microscope
         self.rayleigh_criterion = 0.61 * (self.em_wavelength / self.NA)
@@ -218,7 +220,7 @@ class Fluorescent_microscope_spline:
                 "Bacteria and microscope must have compatible wavelengths")
 
         # Calculate sigma of blur to fit 2D Guassian to Airy Disk 
-        sigma_blur = self.rayleigh_criterion / 3
+        sigma_blur = self.rayleigh_criterion / 2.9
 
         # set padding level
         zero_padding = 15
@@ -235,7 +237,7 @@ class Fluorescent_microscope_spline:
 
         self.image = np.zeros((int(y_pixels), int(x_pixels)))
 
-        for x, y, z in tqdm(np.array(bacteria.b_samples)):
+        for x, y, z in np.array(bacteria.b_samples):
             number_photons = np.random.poisson(255)
             for iter in range(number_photons):
                 photon_x, photon_y = np.random.multivariate_normal([x,y], [[sigma_blur**2, 0], [0, sigma_blur**2]])
@@ -258,33 +260,30 @@ class Fluorescent_microscope_spline:
                 "Bacteria and microscope must have compatible wavelengths")
 
         # Calculate sigma of blur to fit 2D Guassian to Airy Disk 
-        sigma_blur = self.m*self.rayleigh_criterion / (2.5*self.pixel_size)
-
-        # set padding level
-        zero_padding = 5
+        sigma_blur = self.m*self.rayleigh_criterion / (2.9*self.pixel_size)
 
         # populate image with correct number of pixels
         # x-direction is total width of bacteria*magnification / length of
         # pixel width
-        x_pixels = round((np.amax(bacteria.b_samples_y)-np.amin(bacteria.b_samples_y)) * self.m /
-                       self.pixel_size) + zero_padding*2
+        x_pixels = 26
         # y-direction is total height of bacteria*magnification / length of
         # pixel height
-        y_pixels = round((np.amax(bacteria.b_samples_x)-np.amin(bacteria.b_samples_x)) * self.m /
-                       self.pixel_size) + zero_padding*2
+        y_pixels = round((bacteria.x_max-bacteria.x_min)* self.m /
+                       self.pixel_size) + self.padding*2
 
         self.image = np.zeros((int(y_pixels), int(x_pixels)))
 
-        for x, y, z in tqdm(np.array(bacteria.b_samples)):
-            location_x = round(self.m*(x-np.amin(bacteria.b_samples_x))/self.pixel_size) \
-                          + zero_padding
-            location_y = round(self.m*(y-np.amin(bacteria.b_samples_y))/self.pixel_size) \
-                          + zero_padding
+        for x, y, z in np.array(bacteria.b_samples):
+        # chane b_samples x min por radius -> since its always gonna be smallest
+            location_x = round(self.m*(x-bacteria.x_min)/self.pixel_size) \
+                          + self.padding
+            location_y = round(self.m*(y-bacteria.y_min)/self.pixel_size) \
+                          + self.padding
             self.image[int(location_x), int(location_y)] += np.random.poisson(255)
 
         self.image = gaussian_filter(self.image, sigma=sigma_blur)
-        self.image = np.round(self.image*np.random.poisson(350)/np.amax(self.image))
-        self.image = self.image + np.random.poisson(250, (int(y_pixels), int(x_pixels)))
+        self.image = np.round(self.image*np.random.poisson(400)/np.amax(self.image))
+        self.image = self.image + np.random.poisson(200, (int(y_pixels), int(x_pixels)))
         return self.image
 
     def display_image(self, image):
@@ -304,3 +303,39 @@ class Fluorescent_microscope_spline:
         # Display image
         plt.imshow(image, cmap=cm, origin="lower")
         plt.show()
+
+    def _transform_vertices(self, verts, bacteria):
+        verts = verts - bacteria.min[:-1] # move to get non-zero values
+        verts = verts*self.m #magnification
+        verts = verts / self.pixel_size #scaling by size of pixels
+        verts = verts + self.padding # add padding
+        verts[:,[0, 1]] = verts[:,[1, 0]] #make horizontal
+        return verts
+
+    def display_image_with_boundary(self, image, bacteria):
+        fig, ax = plt.subplots()
+        # Create red color map
+        colors = [(0, 0, 0), (1, 0, 0)]
+        cm = LinearSegmentedColormap.from_list('test', colors, N=np.amax(image))
+
+        # Display spline
+        verts_spline = bacteria.spline[:, :-1] # not the z-axis
+        verts_spline = self._transform_vertices(verts_spline, bacteria)
+        codes = [Path.MOVETO] + [Path.LINETO] * (len(verts_spline) - 1)
+        path = Path(verts_spline, codes)
+        patch = patches.PathPatch(path, fill=False, lw=1, ec = 'orange')
+        ax.add_patch(patch)
+
+        # Display boundary
+        verts_boundary = bacteria.boundary[:, :-1]
+        verts_boundary = self._transform_vertices(verts_boundary, bacteria)
+        codes = [Path.MOVETO] + [Path.LINETO] * (len(verts_boundary) - 1)
+        path = Path(verts_boundary, codes)
+        patch = patches.PathPatch(path, fill=False, lw=1, ec = 'orange')
+        ax.add_patch(patch)
+
+        # Display image
+        plt.imshow(image, cmap=cm, origin="lower")
+        plt.show()
+
+
