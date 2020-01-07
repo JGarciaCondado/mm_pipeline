@@ -188,7 +188,8 @@ class Fluorescent_microscope_spline:
         self.ex_wavelength = ex_wavelength  # wavelength emitted by microscope
         self.pixel_size = pixel_size  # assuming pizels are square
         self.image = []
-        self.padding = 3
+        self.padding = 2
+        self.height = 60
 
         # Calculate rayleigh_criterion for microscope
         self.rayleigh_criterion = 0.61 * (self.em_wavelength / self.NA)
@@ -284,6 +285,16 @@ class Fluorescent_microscope_spline:
         self.image = gaussian_filter(self.image, sigma=sigma_blur)
         self.image = np.round(self.image*np.random.poisson(400)/np.amax(self.image))
         self.image = self.image + np.random.poisson(200, (int(y_pixels), int(x_pixels)))
+
+        self.pad = (self.height - self.image.shape[0]) / 2
+        if (self.pad).is_integer():
+            self.image = np.pad(self.image, ((int(self.pad), int(
+                self.pad)), (0, 0)), mode='constant', constant_values=0)
+        else:
+            self.image = np.pad(self.image, ((
+                int(self.pad - 0.5), int(self.pad + 0.5)), (0, 0)),
+                mode='constant', constant_values=0)
+
         return self.image
 
     def display_image(self, image):
@@ -309,6 +320,7 @@ class Fluorescent_microscope_spline:
         verts = verts*self.m #magnification
         verts = verts / self.pixel_size #scaling by size of pixels
         verts = verts + self.padding # add padding
+        verts[:, 0] = verts[:, 0] + int(self.pad)
         verts[:,[0, 1]] = verts[:,[1, 0]] #make horizontal
         return verts
 

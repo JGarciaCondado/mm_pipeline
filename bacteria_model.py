@@ -288,8 +288,8 @@ class Fluorescent_bacteria_spline_fn:
         verts_left_boundary = np.array([(x, self.fn(x)+self.r) for x in np.arange(0.0, self.l+self.dx, self.dx)])
         verts_right_boundary = np.array([(x, self.fn(x)-self.r) for x in np.arange(self.l, -self.dx , -self.dx)])
         verts_right_bottom_circle_boundary = np.array([(x, np.sqrt(self.r**2-x**2)) for x in np.arange(-self.r, self.dx, self.dx)])
-        verts_left_bottom_circle_boundary = np.array([(x,-np.sqrt(self.r**2-x**2)) for x in np.arange(0.0, -self.r - self.dx,-self.dx)])
-        verts_left_top_circle_boundary = np.array([(x+self.l, np.sqrt(self.r**2-x**2)) for x in np.arange(0.0, self.r+self.dx, self.dx)])
+        verts_left_bottom_circle_boundary = np.array([(x,-np.sqrt(self.r**2-x**2)) for x in np.arange(0.0, -self.r, -self.dx)])
+        verts_left_top_circle_boundary = np.array([(x+self.l, np.sqrt(self.r**2-x**2)) for x in np.arange(0.0, self.r, self.dx)])
         verts_right_top_circle_boundary = np.array([(x+self.l, -np.sqrt(self.r**2-x**2)) for x in np.arange(self.r, -self.dx, -self.dx)])
         verts_boundary = np.concatenate((verts_left_boundary,verts_left_top_circle_boundary, verts_right_top_circle_boundary, verts_right_boundary,
                         verts_left_bottom_circle_boundary, verts_right_bottom_circle_boundary))
