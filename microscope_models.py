@@ -297,6 +297,37 @@ class Fluorescent_microscope_spline:
 
         return self.image
 
+    def image_ground_truth_pixels(self, bacteria):
+        # populate image with correct number of pixels
+        # x-direction is total width of bacteria*magnification / length of
+        # pixel width
+        x_pixels = 26
+        # y-direction is total height of bacteria*magnification / length of
+        # pixel height
+        y_pixels = round((bacteria.x_max-bacteria.x_min)* self.m /
+                       self.pixel_size) + self.padding*2
+
+        self.image = np.zeros((int(y_pixels), int(x_pixels)))
+
+        for x, y, z in np.array(bacteria.b_samples):
+        # chane b_samples x min por radius -> since its always gonna be smallest
+            location_x = round(self.m*(x-bacteria.x_min)/self.pixel_size) \
+                          + self.padding
+            location_y = round(self.m*(y-bacteria.y_min)/self.pixel_size) \
+                          + self.padding
+            self.image[int(location_x), int(location_y)] = 1
+
+        self.pad = (self.height - self.image.shape[0]) / 2
+        if (self.pad).is_integer():
+            self.image = np.pad(self.image, ((int(self.pad), int(
+                self.pad)), (0, 0)), mode='constant', constant_values=0)
+        else:
+            self.image = np.pad(self.image, ((
+                int(self.pad - 0.5), int(self.pad + 0.5)), (0, 0)),
+                mode='constant', constant_values=0)
+
+        return self.image
+
     def display_image(self, image):
         """Displays image.
 

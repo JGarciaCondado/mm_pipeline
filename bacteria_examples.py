@@ -1,5 +1,6 @@
 from microscope_models import Fluorescent_microscope_spline
 from bacteria_model import Fluorescent_bacteria_spline_fn
+import matplotlib.pyplot as plt
 import numpy as np
 
 def main():
@@ -36,6 +37,11 @@ def main():
 
     # Display image with convolution
     microscope.display_image(image)
+
+    # Display ground truth image
+    image_gt = microscope.image_ground_truth_pixels(bacteria)
+    plt.imshow(image_gt, origin='lower')
+    plt.show()
 
     # Display image with contour
     microscope.display_image_with_boundary(image, bacteria)
