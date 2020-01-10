@@ -1,3 +1,7 @@
+# Make folders in directory above available
+import sys
+sys.path.append('../')
+
 from microscope_models import Fluorescent_microscope_spline
 from bacteria_model import Fluorescent_bacteria_spline_fn
 import matplotlib.pyplot as plt

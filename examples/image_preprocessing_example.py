@@ -8,11 +8,11 @@ import sys
 sys.path.append('../')
 
 # Import require molyso function
-from molyso.molyso.generic.otsu import threshold_otsu
-from molyso.molyso.generic.signal import hamming_smooth, \
+from molyso.generic.otsu import threshold_otsu
+from molyso.generic.signal import hamming_smooth, \
     simple_baseline_correction, find_extrema_and_prominence, vertical_mean
-from molyso.molyso.mm.channel_detection import find_channels
-from molyso.molyso.generic.rotation import find_rotation, \
+from molyso.mm.channel_detection import find_channels
+from molyso.generic.rotation import find_rotation, \
     apply_rotate_and_cleanup
 
 # Load image as numpy array
