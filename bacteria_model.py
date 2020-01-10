@@ -365,3 +365,61 @@ class Fluorescent_bacteria_spline_fn:
         plt.xlim(np.amin(self.b_samples), np.amax(self.b_samples))
         plt.ylim(np.amin(self.b_samples), np.amax(self.b_samples))
         plt.show()
+
+class bacteria_spline:
+    """ Build an epi-illumination microscope model.
+
+    The model deals with both generating images from bacteria models
+    and displaying such images.
+
+    Parameters
+    ----------
+    r: radius of caps of rod-shaped bacteria (micrometers)
+    l: length of cylinder of rod_shaped bacteria (micrometers)
+    em_wavelength: emitted wavelength captured by microscope (micrometers)
+    ex_wavelength: wavelength of light emitted by microscope (micrometers)
+    n: number of samples to sample
+    n_total: True if n denotes the total numer of accepted samples or false
+             if it denotes the total number of sampling iterations
+
+    Public methods
+    --------------
+    plot_3D(self): Produces a 3D plot of samples within bacteria.
+    plot_2D(self): Produces a 2D plot of samples ignoring z-coordinates.
+    """
+
+    def __init__(self, r, l, dx, fn, theta, ex_wavelength, em_wavelength, n, n_total=True):
+        """Initialise constants."""
+
+        # Check that length is greater than radius
+        if(l < r):
+            raise ValueError("The length must be bigger than the radius")
+
+        self.r = r
+        self.l = l
+        self.n = n
+        self.fn = fn
+        self.dx = dx
+        self.theta = theta*np.pi/180
+        self.rotation_matrix = np.array(((np.cos(self.theta), -np.sin(self.theta), 0.0), (np.sin(self.theta), np.cos(self.theta), 0.0), (0.0, 0.0, 1.0)))
+        # TODO make dxx = 0.01 constant
+        self.spline = np.array([[x, fn(x), 0.0] for x in np.arange(0, self.l+dx, dx)]).dot(np.transpose(self.rotation_matrix))
+        self.max = np.amax(self.spline, axis=0) + self.r
+        [self.x_max, self.y_max, self.z_max] = self.max
+        self.min = np.amin(self.spline, axis=0) - self.r
+        [self.x_min, self.y_min, self.z_min] = self.min
+        self.boundary = self._boundary().dot(np.transpose(self.rotation_matrix[:, :-1]))
+        self.ex_wavelength = ex_wavelength
+        self.em_wavelength = em_wavelength
+
+    def _boundary(self):
+        verts_left_boundary = np.array([(x, self.fn(x)+self.r) for x in np.arange(0.0, self.l+self.dx, self.dx)])
+        verts_right_boundary = np.array([(x, self.fn(x)-self.r) for x in np.arange(self.l, -self.dx , -self.dx)])
+        verts_right_bottom_circle_boundary = np.array([(x, np.sqrt(self.r**2-x**2)) for x in np.arange(-self.r, self.dx, self.dx)])
+        verts_left_bottom_circle_boundary = np.array([(x,-np.sqrt(self.r**2-x**2)) for x in np.arange(0.0, -self.r, -self.dx)])
+        verts_left_top_circle_boundary = np.array([(x+self.l, np.sqrt(self.r**2-x**2)) for x in np.arange(0.0, self.r, self.dx)])
+        verts_right_top_circle_boundary = np.array([(x+self.l, -np.sqrt(self.r**2-x**2)) for x in np.arange(self.r, -self.dx, -self.dx)])
+        verts_boundary = np.concatenate((verts_left_boundary,verts_left_top_circle_boundary, verts_right_top_circle_boundary, verts_right_boundary,
+                        verts_left_bottom_circle_boundary, verts_right_bottom_circle_boundary))
+
+        return verts_boundary
