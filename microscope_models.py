@@ -343,6 +343,7 @@ class Fluorescent_microscope_spline:
         cm = LinearSegmentedColormap.from_list('test', colors, N=np.amax(image))
 
         # Display image
+        plt.title("Bacteria Image")
         plt.imshow(image, cmap=cm, origin="lower")
         plt.show()
 
@@ -364,21 +365,17 @@ class Fluorescent_microscope_spline:
         # Display spline
         verts_spline = bacteria.spline[:, :-1] # not the z-axis
         verts_spline = self._transform_vertices(verts_spline, bacteria)
-        codes = [Path.MOVETO] + [Path.LINETO] * (len(verts_spline) - 1)
-        path = Path(verts_spline, codes)
-        patch = patches.PathPatch(path, fill=False, lw=1, ec = 'orange')
-        ax.add_patch(patch)
+        ax.plot(verts_spline[:, 0], verts_spline[:, 1], 'y', label='spline')
 
         # Display boundary
         verts_boundary = bacteria.boundary[:, :-1]
         verts_boundary = self._transform_vertices(verts_boundary, bacteria)
-        codes = [Path.MOVETO] + [Path.LINETO] * (len(verts_boundary) - 1)
-        path = Path(verts_boundary, codes)
-        patch = patches.PathPatch(path, fill=False, lw=1, ec = 'orange')
-        ax.add_patch(patch)
+        ax.plot(verts_boundary[:, 0], verts_boundary[:, 1], 'g', label='boundary')
 
         # Display image
+        plt.title("Bacteria Image with cell Boundary")
         plt.imshow(image, cmap=cm, origin="lower")
+        plt.legend(fontsize='x-small')
         plt.show()
 
 

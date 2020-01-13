@@ -3,7 +3,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from skimage.segmentation import active_contour
 import matplotlib.pyplot as plt
 import numpy as np
-import pyefd
+import efd
 class contour:
     def __init__(self, im, bias, bacteria, m, pixel_size, padding):
         self.im = im
@@ -55,9 +55,9 @@ class contour:
         return np.array(coordinates)
 
     def smooth(self):
-        locus = pyefd.calculate_dc_coefficients(self.pixelated_contour)
-        coeffs = pyefd.elliptic_fourier_descriptors(self.pixelated_contour, order=10)
-        contour = pyefd.reconstruct_contour(coeffs, locus=locus, num_points=100)
+        locus = efd.calculate_dc_coefficients(self.pixelated_contour)
+        coeffs = efd.elliptic_fourier_descriptors(self.pixelated_contour, order=10)
+        contour = efd.reconstruct_contour(coeffs, locus=locus, num_points=100)
         return contour
 
     def show_pixelated_contour(self):

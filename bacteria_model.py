@@ -355,15 +355,18 @@ class Fluorescent_bacteria_spline_fn:
         ax.set_xlim([np.amin(self.b_samples), np.amax(self.b_samples)])
         ax.set_ylim([np.amin(self.b_samples), np.amax(self.b_samples)])
         ax.set_zlim([np.amin(self.b_samples), np.amax(self.b_samples)])
-
+        plt.title("Bacteria samples in 3D")
         plt.show()
 
     def plot_2D(self):
         """ Plot samples in a 2D plot ignoring z-coordinate."""
-        plt.scatter(self.b_samples_x, self.b_samples_y, s=1)
-        plt.plot(self.spline[:, 0], self.spline[:, 1], c='orange')
-        plt.xlim(np.amin(self.b_samples), np.amax(self.b_samples))
-        plt.ylim(np.amin(self.b_samples), np.amax(self.b_samples))
+        plt.title("Bacteria samples in 2D")
+        plt.scatter(self.b_samples_x, self.b_samples_y, s=1, label="samples")
+        plt.plot(self.spline[:, 0], self.spline[:, 1], c='orange', label='spline')
+        plt.xlim(np.amin(self.b_samples_x), np.amax(self.b_samples_x))
+        plt.ylim(np.amin(self.b_samples_y), np.amax(self.b_samples_y))
+        plt.axis('equal')
+        plt.legend()
         plt.show()
 
 class bacteria_spline:

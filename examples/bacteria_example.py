@@ -44,6 +44,7 @@ def main():
 
     # Display ground truth image
     image_gt = microscope.image_ground_truth_pixels(bacteria)
+    plt.title('Pixels containing samples')
     plt.imshow(image_gt, origin='lower')
     plt.show()
 

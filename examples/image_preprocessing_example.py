@@ -124,7 +124,12 @@ cells = [[_last_pos, _pos] for _last_pos, _pos in zip(
 default_height = 50
 
 # Show cells with final padding
-for start, end in cells:
+N_half = int(np.ceil(len(cells) / 2))
+n_rows = 2
+fig, ax = plt.subplots()
+fig.suptitle("Cells")
+for n, points in enumerate(cells):
+    start, end = points
     pad = (default_height - end + start) / 2
     if (pad).is_integer():
         cell = np.pad(channel[start:end, :], ((int(pad), int(
@@ -133,6 +138,6 @@ for start, end in cells:
         cell = np.pad(channel[start:end, :], ((
             int(pad - 0.5), int(pad + 0.5)), (0, 0)),
             mode='constant', constant_values=0)
-    plt.title('Cell')
-    plt.imshow(cell, cmap=cm)
-    plt.show()
+    ax = plt.subplot2grid((n_rows, N_half), (n // N_half, n % N_half))
+    ax.imshow(cell, cmap=cm)
+plt.show()
