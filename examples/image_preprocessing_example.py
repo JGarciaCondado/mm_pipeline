@@ -15,6 +15,8 @@ from molyso.mm.channel_detection import find_channels
 from molyso.generic.rotation import find_rotation, \
     apply_rotate_and_cleanup
 
+from contour import contour_real
+
 # Load image as numpy array
 im = imread('test_data_fl.tif')
 
@@ -30,13 +32,13 @@ plt.show()
 # Split image into bottom and top channel
 [im_top, im_bottom] = np.vsplit(im, 2)
 
-# Show bottom image
-plt.title('Bottom image')
-plt.imshow(im_bottom, cmap=cm)
-plt.show()
-
 # Flip top image
 im_top_flip = np.flip(im_top)
+
+# Show bottom image
+plt.title('Bottom image')
+plt.imshow(im_top_flip, cmap=cm)
+plt.show()
 
 # Apply rotation to both images
 im_bottom_rot = apply_rotate_and_cleanup(
@@ -45,10 +47,10 @@ im_top_flip_rot = apply_rotate_and_cleanup(
     im_top_flip, find_rotation(im_top_flip))[0]
 
 # Find positions of channels and top and bottom of channel
-positions, (upper, lower) = find_channels(im_bottom_rot)
+positions, (upper, lower) = find_channels(im_top_flip_rot)
 
 # Crop off top of channel and show
-im_bottom_rot_cr = im_bottom_rot[upper:lower, :]
+im_bottom_rot_cr = im_top_flip_rot[upper:lower, :]
 plt.title('Rotated and cropped bottom image')
 plt.imshow(im_bottom_rot_cr, cmap=cm)
 plt.show()
@@ -141,3 +143,5 @@ for n, points in enumerate(cells):
     ax = plt.subplot2grid((n_rows, N_half), (n // N_half, n % N_half))
     ax.imshow(cell, cmap=cm)
 plt.show()
+contour = contour_real(channel[start:end, :], 1.0)
+contour.show_contours()

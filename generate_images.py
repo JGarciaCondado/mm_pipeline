@@ -1,12 +1,13 @@
 from microscope_models import Fluorescent_microscope_spline
 from bacteria_model import Fluorescent_bacteria_spline_fn
 import numpy as np
+from tqdm import tqdm
 
 def main():
     # measurments in micrometers
 
     n_b = 5000  # number of samples
-    n = 2
+    n = 2500
 
     ex_wv = 0.8  # emmitted wavelength by microscope for excitation
     em_wv = 0.59  # emitted wavelength due to fluorescence
@@ -14,7 +15,7 @@ def main():
     NA = 0.95  # Numerical aperture
     magnification = 40  # magnification
 
-    for i in range(n):
+    for i in tqdm(range(n)):
         r = np.random.uniform(0.3, 0.7)  # radius of cylinder caps in micrometers
         l = np.random.uniform(1.5, 4.5)  # total length of cylindrical body excluding the caps
         R = np.random.uniform(4, 40)

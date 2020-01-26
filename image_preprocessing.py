@@ -1,20 +1,16 @@
 from tifffile import imread, imsave
 import numpy as np
 
-# Make folders in directory above available
-import sys
-sys.path.append('../')
-
 import argparse
 import os
 
 # Import require molyso function
-from molyso.molyso.generic.otsu import threshold_otsu
-from molyso.molyso.generic.signal import hamming_smooth, \
+from molyso.generic.otsu import threshold_otsu
+from molyso.generic.signal import hamming_smooth, \
     simple_baseline_correction, find_extrema_and_prominence, vertical_mean
 # Tunable for number of channels must be changed to 200
-from molyso.molyso.mm.channel_detection import find_channels
-from molyso.molyso.generic.rotation import find_rotation, \
+from molyso.mm.channel_detection import find_channels
+from molyso.generic.rotation import find_rotation, \
     apply_rotate_and_cleanup
 
 DEBUG = True
@@ -71,7 +67,7 @@ def find_cells(ch):
     # Check certain requirements to show they are cells
     # If smaller than 10 too small and if biggger than 50 too big
     return [[_last_pos, _pos] for _last_pos, _pos in zip(
-        [0] + positions, positions) if _pos - _last_pos > 10 and _pos - _last_pos < 50]
+        [0] + positions, positions) if _pos - _last_pos > 10 and _pos - _last_pos < 60]
 
 def image_find_cells(im, args, position):
 

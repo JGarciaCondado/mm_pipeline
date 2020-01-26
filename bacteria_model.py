@@ -361,12 +361,13 @@ class Fluorescent_bacteria_spline_fn:
     def plot_2D(self):
         """ Plot samples in a 2D plot ignoring z-coordinate."""
         plt.title("Bacteria samples in 2D")
-        plt.scatter(self.b_samples_x, self.b_samples_y, s=1, label="samples")
+#        plt.scatter(self.b_samples_x, self.b_samples_y, s=1, label="samples")
         plt.plot(self.spline[:, 0], self.spline[:, 1], c='orange', label='spline')
+        plt.plot(self.boundary[:, 0], self.boundary[:, 1], c='green', label='boundary')
         plt.xlim(np.amin(self.b_samples_x), np.amax(self.b_samples_x))
         plt.ylim(np.amin(self.b_samples_y), np.amax(self.b_samples_y))
         plt.axis('equal')
-        plt.legend()
+        plt.legend(loc=4)
         plt.show()
 
 class bacteria_spline:

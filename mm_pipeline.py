@@ -11,8 +11,9 @@
  """
 
 from microscope_models import Fluorescent_microscope_spline
-from bacteria_model import Fluorescent_bacteria_spline
+from bacteria_model import Fluorescent_bacteria_spline_fn
 
+import matplotlib.pyplot as plt
 import getopt
 import sys
 import numpy as np
@@ -37,8 +38,8 @@ def main(arg_list):
 
     # values from subdiffaction-llimit study of kaede diffusion (Somenath et
     # al)
-    r_b = 0.4  # radius of cylinder caps in micrometers
-    l_b = 3  # total length of cylindrical body excluding the caps
+    r_b = 0.7  # radius of cylinder caps in micrometers
+    l_b = 4.5  # total length of cylindrical body excluding the caps
 
     # Ball park values
     ex_wv = 0.8  # emmitted wavelength by microscope for excitation
@@ -47,8 +48,8 @@ def main(arg_list):
     NA = 0.95  # Numerical aperture
     magnification = 40  # magnification
 
-    spline = [[x, -x**2/9+1*x/3, 0.0] for x in np.arange(301)/100]
-#    spline = [[x, 0, 0] for x in np.arange(300)/100]
+    def spline_fn_curvature(x, R=100, l=l_b):
+        return np.sqrt(R**2 - (x-l/2)**2) - np.sqrt(R**2-l**2/4)
 
     for option, path in options:
         if option == "-h":  # print the usage message
@@ -56,7 +57,7 @@ def main(arg_list):
             sys.exit()
     if not options:
         # Create bacteria model
-        bacteria = Fluorescent_bacteria_spline(r_b, l_b, spline, ex_wv, em_wv, n_b)
+        bacteria = Fluorescent_bacteria_spline_fn(r_b, l_b, 0.01, spline_fn_curvature, -15, ex_wv, em_wv, n_b)
         # Create microscope model
         microscope = Fluorescent_microscope_spline(
             magnification, NA, ex_wv, em_wv, pixel_size)
@@ -65,10 +66,14 @@ def main(arg_list):
         # Show 2D dots by ignoring z-coordinate
 #        bacteria.plot_2D()
         # Create image
-        image = microscope.image_bacteria(bacteria)
-        print(image)
+        image = microscope.image_bacteria_conv(bacteria)
+#        print(image)
+        image_gt = microscope.image_ground_truth_pixels(bacteria)
+        plt.imshow(image_gt)
+        plt.show()
+        microscope.display_image(image_gt)
         # Display image
-        microscope.display_image(image)
+        microscope.display_image_with_boundary(image, bacteria)
 
 
 if __name__ == "__main__":
