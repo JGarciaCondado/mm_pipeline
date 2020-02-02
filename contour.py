@@ -4,19 +4,22 @@ from skimage.segmentation import active_contour
 import matplotlib.pyplot as plt
 import numpy as np
 import efd
+
 class contour:
-    def __init__(self, im, bias, bacteria, m, pixel_size, padding):
+    def __init__(self, im, bias, bacteria, m, pixel_size, padding, f_order=10):
         self.im = im
         self.bias = bias #otsu bias
         self.m = m
         self.pixel_size = pixel_size
         self.padding = padding
+        self.f_order = f_order
         self.colors = [(0, 0, 0), (1, 0, 0)]
         self.cm = LinearSegmentedColormap.from_list('test', self.colors, N=np.amax(self.im))
 
         self.boundary = self._transform_vertices(bacteria.boundary[:, :-1], bacteria)
         self.pixelated_contour = self._px_contour()
         self.smoothed_contour = self.smooth()
+        self.smoothed_eliptical = self.smooth_eliptical()
         self.active_contour = active_contour(self.im, self.smoothed_contour, alpha=2.0, beta=20.0, w_line=-0.4, max_px_move=0.05)
 
     def _transform_vertices(self, verts,  bacteria):
@@ -55,10 +58,31 @@ class contour:
         return np.array(coordinates)
 
     def smooth(self):
+        complex_boundary = np.array([x+1j*y for x, y in self.pixelated_contour])
+        dft = np.fft.fft(complex_boundary)
+        dft[1+self.f_order:-self.f_order] = 0
+        smoothed_boundary = np.fft.ifft(dft)
+        smoothed_boundary = np.stack((smoothed_boundary.real, smoothed_boundary.imag),-1)
+        return smoothed_boundary
+
+    def smooth_eliptical(self):
         locus = efd.calculate_dc_coefficients(self.pixelated_contour)
-        coeffs = efd.elliptic_fourier_descriptors(self.pixelated_contour, order=10)
+        coeffs = efd.elliptic_fourier_descriptors(self.pixelated_contour, order=self.f_order)
         contour = efd.reconstruct_contour(coeffs, locus=locus, num_points=100)
         return contour
+
+    def re_smooth(self, f):
+        #TODO make this call the original smoothing functions
+        locus = efd.calculate_dc_coefficients(self.pixelated_contour)
+        coeffs = efd.elliptic_fourier_descriptors(self.pixelated_contour, order=f)
+        contour = efd.reconstruct_contour(coeffs, locus=locus, num_points=100)
+        self.smoothed_eliptical = contour
+        complex_boundary = np.array([x+1j*y for x, y in self.pixelated_contour])
+        dft = np.fft.fft(complex_boundary)
+        dft[1+f:-f] = 0
+        smoothed_boundary = np.fft.ifft(dft)
+        smoothed_boundary = np.stack((smoothed_boundary.real, smoothed_boundary.imag),-1)
+        self.smoothed_contour = smoothed_boundary
 
     def show_pixelated_contour(self):
         fig, ax = plt.subplots()
