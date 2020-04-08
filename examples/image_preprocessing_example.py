@@ -37,7 +37,7 @@ im_top_flip = np.flip(im_top)
 
 # Show bottom image
 plt.title('Bottom image')
-plt.imshow(im_top_flip, cmap=cm)
+plt.imshow(im_bottom, cmap=cm)
 plt.show()
 
 # Apply rotation to both images
@@ -47,10 +47,10 @@ im_top_flip_rot = apply_rotate_and_cleanup(
     im_top_flip, find_rotation(im_top_flip))[0]
 
 # Find positions of channels and top and bottom of channel
-positions, (upper, lower) = find_channels(im_top_flip_rot)
+positions, (upper, lower) = find_channels(im_bottom_rot)
 
 # Crop off top of channel and show
-im_bottom_rot_cr = im_top_flip_rot[upper:lower, :]
+im_bottom_rot_cr = im_bottom_rot[upper:lower, :]
 plt.title('Rotated and cropped bottom image')
 plt.imshow(im_bottom_rot_cr, cmap=cm)
 plt.show()

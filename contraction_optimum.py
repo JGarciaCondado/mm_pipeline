@@ -44,10 +44,11 @@ for i in tqdm(range(stack_len)):
     rm_indices = np.where(im==0.0)[0]
     im = np.delete(im, rm_indices, axis=0)
     icontour = contour(im, 0.8, bacteria, m, pixel_size, padding, 7)
-    contour_smoothed = Polygon(icontour.smoothed_contour).buffer(0)
+    contour_smoothed = Polygon(icontour.smoothed_eliptical).buffer(0)
     bacteria_contour = Polygon(icontour.boundary).buffer(0)
 #    erosion = -1.175*r+0.8725
-    erosion = 0.25
+#    erosion = 0.25
+    erosion = 0.0
     contour_c = contour_smoothed.buffer(-erosion)
     dif = bacteria_contour.symmetric_difference(contour_c)
     error.append(dif.area/bacteria_contour.area)

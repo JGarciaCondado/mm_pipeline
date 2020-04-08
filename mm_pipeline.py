@@ -10,8 +10,8 @@
  Run pipeline: mm_pipeline.py -r
  """
 
-from microscope_models import Fluorescent_microscope_spline
-from bacteria_model import Fluorescent_bacteria_spline_fn
+from microscope_models import Fluorescent_microscope_spline, Microscope
+from bacteria_model import Fluorescent_bacteria_spline_fn, SpherocylindricalBacteria
 
 import matplotlib.pyplot as plt
 import getopt
@@ -57,23 +57,26 @@ def main(arg_list):
             sys.exit()
     if not options:
         # Create bacteria model
-        bacteria = Fluorescent_bacteria_spline_fn(r_b, l_b, 0.01, spline_fn_curvature, -15, ex_wv, em_wv, n_b)
+#        bacteria = Fluorescent_bacteria_spline_fn(r_b, l_b, 0.01, spline_fn_curvature, -15, ex_wv, em_wv, n_b)
+        bacteria = SpherocylindricalBacteria(r_b, l_b, 10, -15, ex_wv, em_wv, 50)
+        bacteria2 = SpherocylindricalBacteria(0.3, l_b, 100, 5, ex_wv, em_wv, 50)
         # Create microscope model
-        microscope = Fluorescent_microscope_spline(
+        microscope = Microscope(
             magnification, NA, ex_wv, em_wv, pixel_size)
         # Show 3D dots from Rejection sampling
 #        bacteria.plot_3D()
         # Show 2D dots by ignoring z-coordinate
-#        bacteria.plot_2D()
+##        bacteria.plot_2D()
         # Create image
-        image = microscope.image_bacteria_conv(bacteria)
+        image = microscope.image_bacteria_conv(bacteria, (15, 30), (40, 40))
+        image = microscope.image_trench([bacteria, bacteria2, bacteria, bacteria2], [(13, 30), (13, 80), (13, 130), (13, 180)])
 #        print(image)
-        image_gt = microscope.image_ground_truth_pixels(bacteria)
-        plt.imshow(image_gt)
-        plt.show()
-        microscope.display_image(image_gt)
+#       image_gt = microscope.image_ground_truth_pixels(bacteria)
+#        plt.imshow(image_gt)
+#        plt.show()
+#        microscope.display_image(image_gt)
         # Display image
-        microscope.display_image_with_boundary(image, bacteria)
+        microscope.display_image(image)
 
 
 if __name__ == "__main__":
