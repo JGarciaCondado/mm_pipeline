@@ -198,3 +198,5 @@ class contour_real:
         plt.title("Contours")
         plt.legend(fontsize="x-small")
         plt.show()
+
+#class contour_bacteria(self, bacteria):

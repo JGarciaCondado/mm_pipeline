@@ -379,3 +379,263 @@ class Fluorescent_microscope_spline:
         plt.show()
 
 
+class Microscope:
+    """ Build an epi-illumination microscope model.
+
+    The model deals with both generating images from bacteria models
+    and displaying such images.
+
+    Parameters
+    ----------
+    m: magnification of microscope (micrometers)
+    NA: microscope numerical aperture
+    em_wavelength: emitted wavelength captured by microscope (micrometers)
+    ex_wavelength: wavelength of light emitted by microscope (micrometers)
+    pixel_size: size of pixels in CCD of microscope (micrometers)
+
+    Public methods
+    --------------
+    image_bacteria(self, bacteria): Produces an image of the bacteria given.
+    display_image(self, image): Displays the image given.
+    """
+
+    def __init__(self, m, NA, ex_wavelength, em_wavelength, pixel_size):
+        """Initialise constants."""
+        self.m = m  # magnification
+        self.NA = NA  # numberical aperture
+        self.em_wavelength = em_wavelength  # emitted wavelength captured
+        self.ex_wavelength = ex_wavelength  # wavelength emitted by microscope
+        self.pixel_size = pixel_size  # assuming pizels are square
+        self.image = []
+        self.padding = 2
+        self.height = 60
+
+        # Calculate rayleigh_criterion for microscope
+        self.rayleigh_criterion = 0.61 * (self.em_wavelength / self.NA)
+
+        # Check that image resolution is diffraciton limited
+        if(self.rayleigh_criterion * self.m / 2 < self.pixel_size):
+            warnings.warn("The pixels are smaller than the nyquist frequency"
+                          " of diffraction of light")
+
+    def image_bacteria_sample(self, bacteria, centroid, shape):
+        """Returns an image of the bacteria.
+
+        This method is used to generate synthetic images of single bacteria.
+
+        Parameters
+        ----------
+        bacteria: instance of the bacteria_model.Fluorescent_bacteria() class.
+
+        Returns
+        -------
+        An 2D np.array of int, corresponding to the pixel value of the image.
+
+        """
+
+        # Check that bacteria emitted wavelength is compatible with microscope
+        if (bacteria.em_wavelength != self.em_wavelength or
+                bacteria.ex_wavelength != self.ex_wavelength):
+            raise ValueError(
+                "Bacteria and microscope must have compatible wavelengths")
+
+        # Calculate sigma of blur to fit 2D Guassian to Airy Disk 
+        sigma_blur = self.rayleigh_criterion/(2.9*self.pixel_size)
+
+        self.image = np.zeros(shape)
+
+        for x, y, z in np.array(bacteria.b_samples):
+            number_photons = np.random.poisson(30)
+            photons = np.round(np.random.multivariate_normal([self.m*x/self.pixel_size+centroid[1], self.m*y/self.pixel_size+centroid[0]], [[sigma_blur**2, 0], [0, sigma_blur**2]], number_photons))
+            photons = np.delete(photons, np.argwhere(np.bitwise_or((photons[:,0]<0), (photons[:,0]>shape[1]), (photons[:,1]<0), (photons[:,1]>shape[0]))), 0)
+            photons_y, photons_x = photons[:, 0], photons[:,1]
+            self.image[photons_x, photons_y] += 1
+
+        self.image = self.image + np.random.poisson(200, shape)
+        return self.image
+
+    def image_bacteria(self, bacteria, centroid, shape):
+        """Returns an image of the bacteria.
+
+        This method is used to generate synthetic images of single bacteria.
+
+        Parameters
+        ----------
+        bacteria: instance of the bacteria_model.Fluorescent_bacteria() class.
+
+        Returns
+        -------
+        An 2D np.array of int, corresponding to the pixel value of the image.
+
+        """
+
+        # Check that bacteria emitted wavelength is compatible with microscope
+        if (bacteria.em_wavelength != self.em_wavelength or
+                bacteria.ex_wavelength != self.ex_wavelength):
+            raise ValueError(
+                "Bacteria and microscope must have compatible wavelengths")
+
+        # Calculate sigma of blur to fit 2D Guassian to Airy Disk 
+        sigma_blur = self.rayleigh_criterion / 2.9
+
+        self.image = np.zeros(shape)
+
+        for x, y, z in np.array(bacteria.b_samples):
+            number_photons = np.random.poisson(30)
+            for iter in range(number_photons):
+                photon_x, photon_y = np.random.multivariate_normal([x,y], [[sigma_blur**2, 0], [0, sigma_blur**2]])
+                location_x = round(self.m*photon_x/self.pixel_size + centroid[1])
+                location_y = round(self.m*photon_y/self.pixel_size + centroid[0])
+                try:
+                    self.image[int(location_x), int(location_y)] += 1
+                except:
+                    pass
+
+        self.image = self.image + np.random.poisson(200, shape)
+        return self.image
+
+    def image_bacteria_conv(self, bacteria, centroid, shape):
+        # Check that bacteria emitted wavelength is compatible with microscope
+        if (bacteria.em_wavelength != self.em_wavelength or
+                bacteria.ex_wavelength != self.ex_wavelength):
+            raise ValueError(
+                "Bacteria and microscope must have compatible wavelengths")
+
+        # Calculate sigma of blur to fit 2D Guassian to Airy Disk 
+        sigma_blur = self.m*self.rayleigh_criterion / (1.0*self.pixel_size)
+
+        # populate image with correct number of pixels
+        # x-direction is total width of bacteria*magnification / length of
+        # pixel width
+#        x_pixels = 26
+        # y-direction is total height of bacteria*magnification / length of
+        # pixel height
+#        y_pixels = round((bacteria.x_max-bacteria.x_min)* self.m /
+#                       self.pixel_size) + self.padding*2
+
+
+        total_photons = 0
+        self.image = np.zeros(shape)
+        for x, y, z in np.array(bacteria.b_samples):
+        # chane b_samples x min por radius -> since its always gonna be smallest
+            location_x = round(self.m*x/self.pixel_size) \
+                              + centroid[1]
+            location_y = round(self.m*y/self.pixel_size) \
+                              + centroid[0]
+                #TODO change this so it check x and y not out of boundary as well not only negative
+            if location_x > 0 and location_y > 0:
+                try:
+                    photons_emitted = np.random.poisson(30)
+                    self.image[int(location_x), int(location_y)] += photons_emitted
+                    total_photons += photons_emitted
+                except:
+                    pass
+
+        self.image = gaussian_filter(self.image, sigma=sigma_blur)
+        self.image = np.round(self.image*np.sum(self.image)/total_photons)
+        self.image = self.image + np.random.poisson(220, shape)
+
+        self.pad = (self.height - self.image.shape[0]) / 2
+        if (self.pad).is_integer():
+            self.image = np.pad(self.image, ((int(self.pad), int(
+                self.pad)), (0, 0)), mode='constant', constant_values=0)
+        else:
+            self.image = np.pad(self.image, ((
+                int(self.pad - 0.5), int(self.pad + 0.5)), (0, 0)),
+                mode='constant', constant_values=0)
+
+        return self.image
+
+    def image_trench(self, bacterias, centroids, y_pixels=250):
+        # Check that bacteria emitted wavelength is compatible with microscope
+        # TODO check this for all bacteria
+#        if (bacteria.em_wavelength != self.em_wavelength or
+#                bacteria.ex_wavelength != self.ex_wavelength):
+#            raise ValueError(
+#                "Bacteria and microscope must have compatible wavelengths")
+
+        # Calculate sigma of blur to fit 2D Guassian to Airy Disk 
+        sigma_blur = self.m*self.rayleigh_criterion / (self.pixel_size)
+
+        # populate image with correct number of pixels
+        # x-direction is total width of bacteria*magnification / length of
+        # pixel width
+        x_pixels = 26
+        # y-direction is total height of bacteria*magnification / length of
+        # pixel height
+
+        self.image = np.zeros((int(y_pixels), int(x_pixels)))
+
+        total_photons = 0
+
+        for i in range(len(centroids)):
+            for x, y, z in np.array(bacterias[i].b_samples):
+            # chane b_samples x min por radius -> since its always gonna be smallest
+                location_x = round(self.m*x/self.pixel_size) \
+                              + centroids[i][1]
+                location_y = round(self.m*y/self.pixel_size) \
+                              + centroids[i][0]
+                #TODO change this so it check x and y not out of boundary as well not only negative
+                if location_x > 0 and location_y > 0:
+                    try:
+                        photons_emitted = np.random.poisson(30)
+                        self.image[int(location_x), int(location_y)] += photons_emitted
+                        total_photons += photons_emitted
+                    except:
+                        pass
+
+        self.image = gaussian_filter(self.image, sigma=sigma_blur)
+        self.image = np.round(self.image*np.sum(self.image)/total_photons)
+        self.image = self.image + np.random.poisson(220, (int(y_pixels), int(x_pixels)))
+
+        return self.image
+
+    def display_image(self, image):
+        """Displays image.
+
+        This method is used to display fluorescent synthetic images.
+
+        Parameters
+        ----------
+        image: 2D np.array of ints
+        """
+
+        # Create red color map
+        colors = [(0, 0, 0), (1, 0, 0)]
+        cm = LinearSegmentedColormap.from_list('test', colors, N=np.amax(image))
+
+        # Display image
+        plt.title("Bacteria Image")
+        plt.imshow(image, cmap=cm, origin="lower")
+        plt.show()
+
+    def _transform_vertices(self, verts, bacteria):
+        verts = verts - bacteria.min[:-1] # move to get non-zero values
+        verts = verts*self.m #magnification
+        verts = verts / self.pixel_size #scaling by size of pixels
+        verts = verts + self.padding # add padding
+        verts[:, 0] = verts[:, 0] + int(self.pad)
+        verts[:,[0, 1]] = verts[:,[1, 0]] #make horizontal
+        return verts
+
+    def display_image_with_boundary(self, image, bacteria):
+        fig, ax = plt.subplots()
+        # Create red color map
+        colors = [(0, 0, 0), (1, 0, 0)]
+        cm = LinearSegmentedColormap.from_list('test', colors, N=np.amax(image))
+
+        # Display spline
+        verts_spline = bacteria.spline[:, :-1] # not the z-axis
+        verts_spline = self._transform_vertices(verts_spline, bacteria)
+        ax.plot(verts_spline[:, 0], verts_spline[:, 1], 'y', label='spline')
+
+        # Display boundary
+        verts_boundary = bacteria.boundary[:, :-1]
+        verts_boundary = self._transform_vertices(verts_boundary, bacteria)
+        ax.plot(verts_boundary[:, 0], verts_boundary[:, 1], 'g', label='boundary')
+
+        # Display image
+        plt.title("Bacteria Image with cell Boundary")
+        plt.imshow(image, cmap=cm, origin="lower")
+        plt.legend(fontsize='x-small')
+        plt.show()
