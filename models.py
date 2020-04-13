@@ -13,7 +13,6 @@ from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 from shapely.geometry import LineString
 
-
 class SpherocylindricalBacteria:
     """ Build an epi-illumination microscope model.
 
@@ -63,6 +62,8 @@ class SpherocylindricalBacteria:
         self.volume_cylinder = (np.pi*self.r**2)*(self.R*(2*np.arcsin(self.l/(2*self.R))))
         self.volume = 2*self.volume_cap+self.volume_cylinder
         self.n = int(self.volume*self.density)
+        self.n_caps = int(2*self.volume_cap*self.density)
+        self.n_cylinder = self.n-self.n_caps
 
         #Calculate rotaion matrix
         self.rotation_matrix = np.array(((np.cos(self.theta), -np.sin(self.theta), 0.0), (np.sin(self.theta), np.cos(self.theta), 0.0), (0.0, 0.0, 1.0)))
@@ -103,30 +104,39 @@ class SpherocylindricalBacteria:
         # samples obtaines
         i = 0
         samples = []
-        while(i < self.n):
-            # lengthscale is alawys gonna be bigger
-            x_sample = np.random.uniform(self.x_min, self.x_max)
-            y_sample = np.random.uniform(self.y_min, self.y_max)
-            z_sample = np.random.uniform(self.z_min, self.z_max)
-            sample = np.array([x_sample, y_sample, z_sample])
-            phi = np.arctan(x_sample/(self.R+y_sample))
-            if phi < self.phi_min:
-                if np.linalg.norm(sample-np.array([-self.l/2, self._fn(-self.l/2), 0.0])) < self.r:
-                    rotated_sample = self.rotation_matrix.dot(sample)
-                    samples.append(rotated_sample)
-                    i += 1
-            elif phi > self.phi_max:
-                if np.linalg.norm(sample-np.array([self.l/2, self._fn(self.l/2), 0.0])) < self.r:
-                    rotated_sample = self.rotation_matrix.dot(sample)
-                    samples.append(rotated_sample)
-                    i += 1
-            else:
-                x_int = self.R*np.sin(phi)
-                y_int = self.R*(np.cos(phi)-1)
-                if np.linalg.norm(sample-np.array([x_int, y_int, 0.0])) < self.r:
-                    rotated_sample = self.rotation_matrix.dot(sample)
-                    samples.append(rotated_sample)
-                    i += 1
+        while(i < self.n_caps):
+            # sample using rejection sampling for cylinder
+            x_sample = np.random.uniform(-self.r, self.r)
+            y_sample = np.random.uniform(-self.r, self.r)
+            z_sample = np.random.uniform(-self.r, self.r)
+            if x_sample**2+y_sample**2+z_sample**2 < self.r**2:
+                sample = np.array([x_sample,y_sample,z_sample])
+                if x_sample < 0:
+                    sample = np.array(((np.cos(self.phi_max), -np.sin(self.phi_max), 0.0), (np.sin(self.phi_max), np.cos(self.phi_max), 0.0), (0.0, 0.0, 1.0))).dot(sample)
+                    sample = sample+np.array([-self.l/2, self._fn(-self.l/2), 0.0])
+                else:
+                    sample = np.array(((np.cos(-self.phi_max), -np.sin(-self.phi_max), 0.0), (np.sin(-self.phi_max), np.cos(-self.phi_max), 0.0), (0.0, 0.0, 1.0))).dot(sample)
+                    sample = sample+np.array([self.l/2, self._fn(self.l/2), 0.0])
+                rotated_sample = self.rotation_matrix.dot(sample)
+                samples.append(rotated_sample)
+                i +=1
+
+        i = 0
+        while(i < self.n_cylinder):
+            #sample using outlined in
+            phi = np.random.uniform(self.phi_min, self.phi_max)
+            theta = np.random.uniform(0, 2*np.pi)
+            p = self.r*np.sqrt(np.random.uniform())
+            W = np.random.uniform()
+            if W < (self.R+p*np.cos(theta))/(self.R+p):
+                x = (self.R+p*np.cos(theta))*np.sin(phi)
+                y = (self.R+p*np.cos(theta))*np.cos(phi)-self.R
+                z = p*np.sin(theta)
+                sample = np.array([x,y,z])
+                rotated_sample = self.rotation_matrix.dot(sample)
+                samples.append(rotated_sample)
+                i += 1
+
         return samples
 
 
