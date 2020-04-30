@@ -502,7 +502,7 @@ class Microscope:
                 "Bacteria and microscope must have compatible wavelengths")
 
         # Calculate sigma of blur to fit 2D Guassian to Airy Disk 
-        sigma_blur = self.m*self.rayleigh_criterion / (1.0*self.pixel_size)
+        sigma_blur = self.m*self.rayleigh_criterion / (2.9*self.pixel_size)
 
         # populate image with correct number of pixels
         # x-direction is total width of bacteria*magnification / length of

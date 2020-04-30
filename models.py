@@ -12,6 +12,9 @@ import numpy as np
 from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 from shapely.geometry import LineString
+from scipy.ndimage.filters import gaussian_filter
+from scipy.stats import cauchy
+from matplotlib.colors import LinearSegmentedColormap
 
 class SpherocylindricalBacteria:
     """ Build an epi-illumination microscope model.
@@ -172,3 +175,326 @@ class SpherocylindricalBacteria:
         plt.legend()
         plt.axis('scaled')
         plt.show()
+
+class Microscope:
+    """ Build an epi-illumination microscope model.
+
+    The model deals with both generating images from bacteria models
+    and displaying such images.
+
+    Parameters
+    ----------
+    m: magnification of microscope (micrometers)
+    NA: microscope numerical aperture
+    em_wavelength: emitted wavelength captured by microscope (micrometers)
+    ex_wavelength: wavelength of light emitted by microscope (micrometers)
+    pixel_size: size of pixels in CCD of microscope (micrometers)
+
+    Public methods
+    --------------
+    image_bacteria(self, bacteria): Produces an image of the bacteria given.
+    display_image(self, image): Displays the image given.
+    """
+
+    def __init__(self, m, NA, ex_wavelength, em_wavelength, pixel_size):
+        """Initialise constants."""
+        self.m = m  # magnification
+        self.NA = NA  # numberical aperture
+        self.em_wavelength = em_wavelength  # emitted wavelength captured
+        self.ex_wavelength = ex_wavelength  # wavelength emitted by microscope
+        self.pixel_size = pixel_size  # assuming pizels are square
+
+        # Calculate rayleigh_criterion for microscope
+        self.rayleigh_criterion = 0.61 * (self.em_wavelength / self.NA)
+
+        # Check that image resolution is diffraciton limited
+        if(self.rayleigh_criterion * self.m / 2 < self.pixel_size):
+            warnings.warn("The pixels are smaller than the nyquist frequency"
+                          " of diffraction of light")
+
+    def image_bacteria(self, bacteria, centroid, shape, sigma = 0.0, photons=30, noise=200, gain = 1.0, padding=False):
+        # Check that bacteria emitted wavelength is compatible with microscope
+        if (bacteria.em_wavelength != self.em_wavelength or
+                bacteria.ex_wavelength != self.ex_wavelength):
+            raise ValueError(
+                "Bacteria and microscope must have compatible wavelengths")
+
+        # Preset value of sigma to fit 2D Guassian to theoretical Airy Disk from rayleigh criterion 
+        if sigma == 0.0:
+            sigma = self.m*self.rayleigh_criterion / (2.9*self.pixel_size)
+
+        # Create array to store image
+        self.image = np.zeros(shape)
+
+        # Emission of photons
+        total_photons = 0
+        # TODO check all rounding
+        for x, y, z in np.array(bacteria.samples):
+        # chanige b_samples x min por radius -> since its always gonna be smallest
+            location_x = round(self.m*x/self.pixel_size) \
+                              + centroid[1]
+            location_y = round(self.m*y/self.pixel_size) \
+                              + centroid[0]
+            #TODO change this so it check x and y not out of boundary as well not only negative
+            if location_x > 0 and location_y > 0 and location_x < self.image.shape[0] and location_y < self.image.shape[1]:
+                photons_emitted = np.random.poisson(photons)
+                self.image[int(location_x), int(location_y)] += gain*photons_emitted
+                total_photons += gain*photons_emitted
+
+        # Apply convolution with gaussian filter
+        self.image = gaussian_filter(self.image, sigma=sigma)
+        # Normalize so the number of phtons is the number of total_photons emitters
+        self.image = np.round(self.image*np.sum(self.image)/total_photons)
+        # Add noise
+        self.image = self.image + np.random.poisson(noise, shape)
+
+        #TODO fix padding functions -> give padding shape 
+        #TODO test that padding shape is not smaller than image
+        if padding:
+            self.pad = (0.0 - self.image.shape[0]) / 2
+            if (self.pad).is_integer():
+                self.image = np.pad(self.image, ((int(self.pad), int(
+                    self.pad)), (0, 0)), mode='constant', constant_values=0)
+            else:
+                self.image = np.pad(self.image, ((
+                    int(self.pad - 0.5), int(self.pad + 0.5)), (0, 0)),
+                    mode='constant', constant_values=0)
+
+        return self.image
+
+    def image_bacteria_sampling(self, bacteria, centroid, shape, sigma = 0.0, photons=30, noise=200, gain = 1.0, padding=False):
+        # Check that bacteria emitted wavelength is compatible with microscope
+        if (bacteria.em_wavelength != self.em_wavelength or
+                bacteria.ex_wavelength != self.ex_wavelength):
+            raise ValueError(
+                "Bacteria and microscope must have compatible wavelengths")
+
+        # Preset value of sigma to fit 2D Guassian to theoretical Airy Disk from rayleigh criterion 
+        if sigma == 0.0:
+            sigma = self.m*self.rayleigh_criterion / (2.9*self.pixel_size)
+
+        # Create array to store image
+        self.image = np.zeros(shape)
+
+        # TODO check all rounding
+        for x, y, z in np.array(bacteria.samples):
+        # chanige b_samples x min por radius -> since its always gonna be smallest
+            location_x = self.m*x/self.pixel_size \
+                              + centroid[1]
+            location_y = self.m*y/self.pixel_size \
+                              + centroid[0]
+            #TODO change this so it check x and y not out of boundary as well not only negative
+            photons_emitted = np.random.normal([location_x, location_y], sigma, (np.random.poisson(photons), 2))
+            for xp, yp in photons_emitted:
+                if xp > -0.5 and yp > -0.5 and xp < self.image.shape[0]-0.5 and yp < self.image.shape[1] - 0.5:
+                    self.image[int(round(xp)), int(round(yp))] += gain
+
+        # Add noise
+        self.image = self.image + np.random.poisson(noise, shape)
+
+        return self.image
+
+    def image_bacteria_cauchy(self, bacteria, centroid, shape, gamma = 1.0, photons=30, noise=150, gain = 1.0, padding=False):
+        # Check that bacteria emitted wavelength is compatible with microscope
+        if (bacteria.em_wavelength != self.em_wavelength or
+                bacteria.ex_wavelength != self.ex_wavelength):
+            raise ValueError(
+                "Bacteria and microscope must have compatible wavelengths")
+
+        # Create array to store image
+        self.image = np.zeros(shape)
+
+        # TODO check all rounding
+        for x, y, z in np.array(bacteria.samples):
+        # chanige b_samples x min por radius -> since its always gonna be smallest
+            location_x = self.m*x/self.pixel_size \
+                              + centroid[1]
+            location_y = self.m*y/self.pixel_size \
+                              + centroid[0]
+            #TODO change this so it check x and y not out of boundary as well not only negative
+            photons_emitted = cauchy.rvs(loc = [location_x, location_y], scale=gamma, size=(np.random.poisson(photons), 2))
+            for xp, yp in photons_emitted:
+                if xp > -0.5 and yp > -0.5 and xp < self.image.shape[0]-0.5 and yp < self.image.shape[1] - 0.5:
+                    self.image[int(round(xp)), int(round(yp))] += gain
+
+        # Add noise
+        self.image = self.image + np.random.poisson(noise, shape)
+
+        return self.image
+
+    def image_trench(self, bacterias, centroids, shape, sigma = 0.0, photons=30, noise=200, gain = 1.0):
+
+        # Preset value of sigma to fit 2D Guassian to theoretical Airy Disk from rayleigh criterion 
+        if sigma == 0.0:
+            sigma = self.m*self.rayleigh_criterion / (2.9*self.pixel_size)
+
+        # Create array to store image
+        self.image = np.zeros(shape)
+
+        # Emission of photons
+        total_photons = 0
+        for bacteria, centroid in zip(bacterias, centroids):
+            # Check that bacteria emitted wavelength is compatible with microscope
+            if (bacteria.em_wavelength != self.em_wavelength or
+                    bacteria.ex_wavelength != self.ex_wavelength):
+                raise ValueError(
+                    "Bacteria and microscope must have compatible wavelengths")
+
+            for x, y, z in np.array(bacteria.samples):
+            # chanige b_samples x min por radius -> since its always gonna be smallest
+                location_x = round(self.m*x/self.pixel_size) \
+                                  + centroid[1]
+                location_y = round(self.m*y/self.pixel_size) \
+                                  + centroid[0]
+                #TODO change this so it check x and y not out of boundary as well not only negative
+                if location_x > 0 and location_y > 0 and location_x < self.image.shape[0] and location_y < self.image.shape[1]:
+                    photons_emitted = np.random.poisson(photons)
+                    self.image[int(location_x), int(location_y)] += gain*photons_emitted
+                    total_photons += gain*photons_emitted
+
+        # Apply convolution with gaussian filter
+        self.image = gaussian_filter(self.image, sigma=sigma)
+        # Normalize so the number of phtons is the number of total_photons emitters
+        self.image = np.round(self.image*np.sum(self.image)/total_photons)
+        # Add noise
+        self.image = self.image + np.random.poisson(noise, shape)
+
+        return self.image
+
+    def image_MM_sampling(self, bacteria_array, centroid_array, shape, distance_between_trenches, sigma = 0.0, photons=30, noise=200, gain = 1.0):
+
+        # Preset value of sigma to fit 2D Guassian to theoretical Airy Disk from rayleigh criterion 
+        if sigma == 0.0:
+            sigma = self.m*self.rayleigh_criterion / (2.9*self.pixel_size)
+
+        # Create array to store image
+        self.image = np.zeros(shape)
+
+        # Emission of photons
+        total_photons = 0
+        trench_pos = 0
+
+        # Centroids are relative to the trench
+        for bacterias, centroids in zip(bacteria_array, centroid_array):
+            trench_pos += distance_between_trenches*self.m/self.pixel_size
+            if bacterias == []:
+                continue
+            for bacteria, centroid in zip(bacterias, centroids):
+                # Check that bacteria emitted wavelength is compatible with microscope
+                if (bacteria.em_wavelength != self.em_wavelength or
+                        bacteria.ex_wavelength != self.ex_wavelength):
+                    raise ValueError(
+                        "Bacteria and microscope must have compatible wavelengths")
+
+                for x, y, z in np.array(bacteria.samples):
+                    location_x = self.m*x/self.pixel_size \
+                                  + centroid[1]
+                    location_y = self.m*y/self.pixel_size \
+                                  + centroid[0] + trench_pos
+                    #TODO change this so it check x and y not out of boundary as well not only negative
+                    photons_emitted = np.random.normal([location_x, location_y], sigma, (np.random.poisson(photons), 2))
+                    for xp, yp in photons_emitted:
+                        if xp > -0.5 and yp > -0.5 and xp < self.image.shape[0]-0.5 and yp < self.image.shape[1] - 0.5:
+                            self.image[int(round(xp)), int(round(yp))] += gain
+
+        # Add noise
+        self.image = self.image + np.random.poisson(noise, shape)
+
+        return self.image
+
+    def image_MM(self, bacteria_array, centroid_array, shape, distance_between_trenches, sigma = 0.0, photons=30, noise=200, gain = 1.0):
+
+        # Preset value of sigma to fit 2D Guassian to theoretical Airy Disk from rayleigh criterion 
+        if sigma == 0.0:
+            sigma = self.m*self.rayleigh_criterion / (2.9*self.pixel_size)
+
+        # Create array to store image
+        self.image = np.zeros(shape)
+
+        # Emission of photons
+        total_photons = 0
+        trench_pos = 0
+
+        # Centroids are relative to the trench
+        for bacterias, centroids in zip(bacteria_array, centroid_array):
+            trench_pos += distance_between_trenches*self.m/self.pixel_size
+            if bacterias == []:
+                continue
+            for bacteria, centroid in zip(bacterias, centroids):
+                # Check that bacteria emitted wavelength is compatible with microscope
+                if (bacteria.em_wavelength != self.em_wavelength or
+                        bacteria.ex_wavelength != self.ex_wavelength):
+                    raise ValueError(
+                        "Bacteria and microscope must have compatible wavelengths")
+
+                for x, y, z in np.array(bacteria.samples):
+                # chanige b_samples x min por radius -> since its always gonna be smallest
+                    location_x = round(self.m*x/self.pixel_size) \
+                                      + centroid[1]
+                    location_y = round(self.m*y/self.pixel_size) \
+                                      + centroid[0] + trench_pos
+                    #TODO change this so it check x and y not out of boundary as well not only negative
+                    if location_x > 0 and location_y > 0 and location_x < self.image.shape[0] and location_y < self.image.shape[1]:
+                        photons_emitted = np.random.poisson(photons)
+                        self.image[int(location_x), int(location_y)] += gain*photons_emitted
+                        total_photons += gain*photons_emitted
+
+        # Apply convolution with gaussian filter
+        self.image = gaussian_filter(self.image, sigma=sigma)
+        # Normalize so the number of phtons is the number of total_photons emitters
+        self.image = np.round(self.image*np.sum(self.image)/total_photons)
+        # Add noise
+        self.image = self.image + np.random.poisson(noise, shape)
+
+        return self.image
+
+    def display_image(self, image):
+        """Displays image.
+
+        This method is used to display fluorescent synthetic images.
+
+        Parameters
+        ----------
+        image: 2D np.array of ints
+        """
+
+        # Create red color map
+        colors = [(0, 0, 0), (1, 0, 0)]
+        cm = LinearSegmentedColormap.from_list('test', colors, N=np.amax(image))
+
+        # Display image
+        #TODO change title
+#        plt.title("Bacteria Image")
+        plt.imshow(image, cmap=cm, origin="lower")
+        plt.show()
+
+    def _transform_vertices(self, verts, bacteria, centroid):
+        verts = verts*self.m #magnification
+        verts = verts / self.pixel_size #scaling by size of pixels
+        verts[:,[0, 1]] = verts[:,[1, 0]] #make horizontal
+        verts = verts + centroid # move by centroid
+        return verts
+
+    def display_image_with_boundary(self, image, bacteria, centroid):
+        #TODO extend this to work with trenches and MM
+        fig, ax = plt.subplots()
+        # Create red color map
+        colors = [(0, 0, 0), (1, 0, 0)]
+        cm = LinearSegmentedColormap.from_list('test', colors, N=np.amax(image))
+
+        # Display spline
+        verts_spline = bacteria.spline[:, :-1] # not the z-axis
+        verts_spline = self._transform_vertices(verts_spline, bacteria, centroid)
+        ax.plot(verts_spline[:, 0], verts_spline[:, 1], 'y', label='spline')
+
+        # Display boundary
+        verts_boundary = np.array(list(map(list, bacteria.boundary)))
+        verts_boundary = self._transform_vertices(verts_boundary, bacteria, centroid)
+        ax.plot(verts_boundary[:, 0], verts_boundary[:, 1], 'g', label='boundary')
+
+        # Display image
+        plt.imshow(image, cmap=cm, origin="lower")
+        plt.title("Bacteria Image with cell Boundary")
+        plt.legend(fontsize='x-small')
+        plt.show()
+
