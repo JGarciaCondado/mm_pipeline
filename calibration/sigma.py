@@ -32,7 +32,7 @@ for dist in distributions:
     h_dist.append(h)
 
 r_test = np.arange(4.4, 6.6, 0.1)
-sigmas = np.arange(2, 5, 0.1)
+sigmas = np.arange(2, 4, 0.1)
 test_results = np.zeros((len(sigmas), len(distributions), len(r_test)))
 
 for z, sig in enumerate(sigmas):
@@ -41,6 +41,12 @@ for z, sig in enumerate(sigmas):
             bins, model = convolved_circle_px(r, h_dist[j], sig, 26)
             test = kolmogrov_smirnov_test(dist, model)
             test_results[z, j, i] = test
+
+mean_min_results = np.nanmean(np.min(test_results, axis=2), axis=1)
+plt.plot(sigmas, mean_min_results)
+plt.xlabel("Sigma")
+plt.ylabel("Kolmogorov-smirnov distance")
+plt.show()
 
 min_val = np.amin(np.amin(test_results, axis=2), axis=0)
 for i in range(len(sigmas)):
@@ -53,22 +59,23 @@ def animate(i):
     ax.clear()
     ax.set_zlim(0, 0.2)
     plt.title("sigma = {}".format(sigmas[i]))
-    X = r_test
-    Y = range(len(distributions))
-    X, Y = np.meshgrid(X, Y)
-    Z = test_results[i, :, :]
+#    X = r_test
+#    Y = range(len(distributions))
+#    X, Y = np.meshgrid(X, Y)
+#    Z = test_results[i, :, :]
 
     # Plot the surface.
-    surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm,
-                       linewidth=0, antialiased=False)
+#    surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm,
+#                       linewidth=0, antialiased=False)
 
-#    for i, results in enumerate(test_results[i]):
-#        ax.plot(r_test, results, zs=i, zdir='y')
+    for i, results in enumerate(test_results[i]):
+        ax.plot(r_test, results, zs=i, zdir='y')
 
 
     # Add a color bar which maps values to colors.
 #    fig.colorbar(surf, shrink=0.5, aspect=5)
-Writer = animation.writers['ffmpeg']
-writer = Writer(fps=20, metadata=dict(artist='Me'), bitrate=1800)
+#Writer = animation.writers['ffmpeg']
+#writer = Writer(fps=20, metadata=dict(artist='Me'), bitrate=1800)
 ani = animation.FuncAnimation(fig, animate, frames = 30, interval= 1000, repeat=True)
-ani.save('test_mesh.mp4', writer=writer)
+#ani.save('test_mesh.mp4', writer=writer)
+plt.show()
