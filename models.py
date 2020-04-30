@@ -46,7 +46,7 @@ class SpherocylindricalBacteria:
         # Check that length is greater than radius
         if(l < r):
             raise ValueError("The length must be bigger than the radius")
-        elif(l > 2*R):
+        elif(l > 2*abs(R)):
             raise ValueError("The length must be smaller than twice the curvature")
         elif(ex_wavelength < em_wavelength):
             raise ValueError("The excitation wavelength must be shorter than the emission wavelength")
@@ -94,7 +94,7 @@ class SpherocylindricalBacteria:
     def _fn(self, x):
         """ Function describing a circle with center at (0, -R) and
         a radius of R """
-        return np.sqrt(self.R**2 - x**2) - self.R
+        return np.sign(self.R)*np.sqrt(self.R**2 - x**2) - self.R
 
     def _sample(self):
         """ Samples point within the bacteria cell boundary.
