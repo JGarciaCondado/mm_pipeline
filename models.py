@@ -231,10 +231,10 @@ class Microscope:
         # TODO check all rounding
         for x, y, z in np.array(bacteria.samples):
         # chanige b_samples x min por radius -> since its always gonna be smallest
-            location_x = round(self.m*x/self.pixel_size) \
-                              + centroid[1]
-            location_y = round(self.m*y/self.pixel_size) \
-                              + centroid[0]
+            location_x = round(self.m*x/self.pixel_size \
+                              + centroid[1] )
+            location_y = round(self.m*y/self.pixel_size \
+                              + centroid[0] )
             #TODO change this so it check x and y not out of boundary as well not only negative
             if location_x > 0 and location_y > 0 and location_x < self.image.shape[0] and location_y < self.image.shape[1]:
                 photons_emitted = np.random.poisson(photons)
@@ -262,6 +262,41 @@ class Microscope:
 
         return self.image
 
+    def image_bacteria_ground_truth(self, bacteria, centroid, shape, padding=False):
+        # Check that bacteria emitted wavelength is compatible with microscope
+        if (bacteria.em_wavelength != self.em_wavelength or
+                bacteria.ex_wavelength != self.ex_wavelength):
+            raise ValueError(
+                "Bacteria and microscope must have compatible wavelengths")
+
+        # Create array to store image
+        self.image = np.zeros(shape)
+
+        # TODO check all rounding
+        for x, y, z in np.array(bacteria.samples):
+        # chanige b_samples x min por radius -> since its always gonna be smallest
+            location_x = round(self.m*x/self.pixel_size \
+                              + centroid[1] )
+            location_y = round(self.m*y/self.pixel_size \
+                              + centroid[0] )
+            #TODO change this so it check x and y not out of boundary as well not only negative
+            if location_x > 0 and location_y > 0 and location_x < self.image.shape[0] and location_y < self.image.shape[1]:
+                self.image[int(location_x), int(location_y)] = 1.0
+
+
+        #TODO fix padding functions -> give padding shape 
+        #TODO test that padding shape is not smaller than image
+        if padding:
+            self.pad = (0.0 - self.image.shape[0]) / 2
+            if (self.pad).is_integer():
+                self.image = np.pad(self.image, ((int(self.pad), int(
+                    self.pad)), (0, 0)), mode='constant', constant_values=0)
+            else:
+                self.image = np.pad(self.image, ((
+                    int(self.pad - 0.5), int(self.pad + 0.5)), (0, 0)),
+                    mode='constant', constant_values=0)
+
+        return self.image
     def image_bacteria_sampling(self, bacteria, centroid, shape, sigma = 0.0, photons=30, noise=200, gain = 1.0, padding=False):
         # Check that bacteria emitted wavelength is compatible with microscope
         if (bacteria.em_wavelength != self.em_wavelength or
