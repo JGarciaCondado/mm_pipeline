@@ -43,6 +43,7 @@ def main():
         im_stack.append(im)
         params.append([r,l,R,theta, centroid])
 
+    #TODO save as .npz file with column names image/gt/params/
     np.save("Dataset/im_stack.npy", im_stack)
     np.save("Dataset/im_gt_stack.npy", im_gt_stack)
     np.save("Dataset/params.npy", params)
