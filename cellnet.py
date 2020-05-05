@@ -1,7 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
+from tensorflow.keras import layers, models
+from contour import boundary
 import tensorflow_docs as tfdocs
 import tensorflow_docs.modeling
 import tensorflow_docs.plots
@@ -29,58 +30,164 @@ train_size = int(0.7*DATASET_SIZE)
 val_size = int(0.15*DATASET_SIZE)
 test_size = int(0.15*DATASET_SIZE)
 dataset = dataset.shuffle(DATASET_SIZE)
-BATCH_SIZE = 1
+BATCH_SIZE = 32
 train_dataset = dataset.take(train_size).batch(BATCH_SIZE)
 test_dataset = dataset.skip(train_size)
 val_dataset = test_dataset.take(val_size).batch(1)
 test_dataset = test_dataset.skip(val_size)
 
 def build_model():
-  model = keras.Sequential([
-    layers.Flatten(input_shape=(50, 26, 1)),
-    layers.Dense(64, activation='relu'),
-    layers.Dense(64, activation='relu'),
-    layers.Dense(6)
-  ])
+    inputs = layers.Input(shape = (50,26,1))
+    conv1 = layers.Conv2D(6, (3, 3), activation='relu', padding='same')(inputs)
+    pool1 = layers.MaxPooling2D(pool_size=(2, 2))(conv1)
+    conv2 = layers.Conv2D(12, (3, 3), activation='relu', padding='same')(pool1)
+    pool2 = layers.MaxPooling2D(pool_size=(2, 2))(conv2)
+    flatten = layers.Flatten()(pool2)
+    fc1 = layers.Dense(128, activation='relu')(flatten)
+    fc2 = layers.Dense(64, activation='relu')(fc1)
+    fc3 = layers.Dense(6)(fc2)
 
-  optimizer = tf.keras.optimizers.RMSprop(0.001)
+    model = models.Model(inputs=inputs, outputs=fc3)
 
-  model.compile(loss='mse',
+    optimizer = tf.keras.optimizers.RMSprop(0.001)
+
+    model.compile(loss='mse',
                 optimizer=optimizer,
                 metrics=['mae', 'mse'])
-  return model
+    return model
 
 model = build_model()
 model.summary()
-example_batch = test_dataset.take(10)
-example_result = model.predict(example_batch.batch(1))
-print(example_result)
 
-EPOCHS = 1000
+test_predictions = model.predict(test_dataset.batch(1))
+test_predictions = np.array([target*target_std+target_mean for target in test_predictions])
+test_labels = []
+test_images = []
+for image, params in test_dataset:
+    test_images.append(image)
+    test_labels.append(params*target_std+target_mean)
+test_labels = np.array(test_labels)
+
+for i in range(1):
+    r, l, R, theta, centroid1, centroid2 = test_labels[i]
+    plt.imshow(test_images[i][:, :, 0])
+    Boundary = boundary(r,l,R,theta)
+    verts_spline = Boundary.get_spline(40, 4.4, [centroid1, centroid2])
+    verts_boundary = Boundary.get_boundary(40, 4.4, [centroid1, centroid2])
+    plt.plot(verts_spline[:, 0], verts_spline[:, 1])
+    plt.plot(verts_boundary[:, 0], verts_boundary[:, 1])
+    r, l, R, theta, centroid1, centroid2 = test_predictions[i]
+    Boundary = boundary(r,l,R,theta)
+    verts_spline = Boundary.get_spline(40, 4.4, [centroid1, centroid2])
+    verts_boundary = Boundary.get_boundary(40, 4.4, [centroid1, centroid2])
+    plt.plot(verts_spline[:, 0], verts_spline[:, 1])
+    plt.plot(verts_boundary[:, 0], verts_boundary[:, 1])
+    plt.show()
+
+params_label = ['r', 'l', 'R', 'theta', 'x-centroid', 'y-centroid']
+lims = [(0.4, 0.6), (1, 6), (-200, 200), (-20, 20), (0, 26), (0,50)]
+plt.figure(figsize=(15,15))
+for i in range(len(params)):
+    plt.subplot(2, 3, i+1)
+    plt.scatter(test_labels[:, i], test_predictions[:, i])
+    plt.xlabel('True Values [{}]'.format(params_label[i]))
+    plt.ylabel('Predictions[{}]'.format(params_label[i]))
+    plt.xlim(lims[i])
+    plt.ylim(lims[i])
+    plt.plot(lims, lims, 'r')
+plt.show()
+
+EPOCHS = 700
 VALIDATION_STEPS = 32
 
-history = model.fit(
-  train_dataset,
-  epochs=EPOCHS,
-  validation_steps=VALIDATION_STEPS,
-  validation_data=val_dataset,
-  verbose =0,
-  callbacks=[tfdocs.modeling.EpochDots()])
+#history = model.fit(
+#  train_dataset,
+#  epochs=EPOCHS,
+#  validation_steps=VALIDATION_STEPS,
+#  validation_data=val_dataset,
+#  verbose =0,
+#  callbacks=[tfdocs.modeling.EpochDots()])
 
-example_result = model.predict(example_batch.batch(1))
 
-print(example_result)
-
-hist = pd.DataFrame(history.history)
-hist['epoch'] = history.epoch
-print(hist.tail())
+#hist = pd.DataFrame(history.history)
+#hist['epoch'] = history.epoch
+#print(hist.tail())
 
 plotter = tfdocs.plots.HistoryPlotter(smoothing_std=2)
-plotter.plot({'Basic': history}, metric = "mae")
+#plotter.plot({'Basic': history}, metric = "mae")
+#plt.ylim([0, 1])
+#plt.ylabel('MAE [MPG]')
+#plt.show()
+#plotter.plot({'Basic': history}, metric = "mse")
+#plt.ylim([0, 1])
+#plt.ylabel('MSE [MPG^2]')
+#plt.show()
+
+
+#Early stopping
+model = build_model()
+
+# The patience parameter is the amount of epochs to check for improvement
+early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=50)
+
+early_history = model.fit(
+                          train_dataset,
+                          epochs=EPOCHS,
+                          validation_steps=VALIDATION_STEPS,
+                          validation_data=val_dataset,
+                          verbose =0,
+                          callbacks=[early_stop, tfdocs.modeling.EpochDots()])
+
+plotter.plot({'Early Stopping': early_history}, metric = "mae")
 plt.ylim([0, 1])
 plt.ylabel('MAE [MPG]')
 plt.show()
-plotter.plot({'Basic': history}, metric = "mse")
-plt.ylim([0, 1])
-plt.ylabel('MSE [MPG^2]')
+
+loss, mae, mse = model.evaluate(test_dataset.batch(1),verbose=2)
+
+print("Testing set Mean Abs Error: {:5.2f}".format(mae))
+
+test_predictions = model.predict(test_dataset.batch(1))
+test_predictions = np.array([target*target_std+target_mean for target in test_predictions])
+test_labels = []
+test_images = []
+for image, params in test_dataset:
+    test_images.append(image)
+    test_labels.append(params*target_std+target_mean)
+test_labels = np.array(test_labels)
+
+for i in range(1):
+    r, l, R, theta, centroid1, centroid2 = test_labels[i]
+    plt.imshow(test_images[i][:, :, 0])
+    Boundary = boundary(r,l,R,theta)
+    verts_spline = Boundary.get_spline(40, 4.4, [centroid1, centroid2])
+    verts_boundary = Boundary.get_boundary(40, 4.4, [centroid1, centroid2])
+    plt.plot(verts_spline[:, 0], verts_spline[:, 1])
+    plt.plot(verts_boundary[:, 0], verts_boundary[:, 1])
+    r, l, R, theta, centroid1, centroid2 = test_predictions[i]
+    Boundary = boundary(r,l,R,theta)
+    verts_spline = Boundary.get_spline(40, 4.4, [centroid1, centroid2])
+    verts_boundary = Boundary.get_boundary(40, 4.4, [centroid1, centroid2])
+    plt.plot(verts_spline[:, 0], verts_spline[:, 1])
+    plt.plot(verts_boundary[:, 0], verts_boundary[:, 1])
+    plt.show()
+
+plt.figure(figsize=(15,15))
+for i in range(len(params)):
+    plt.subplot(2, 3, i+1)
+    plt.scatter(test_labels[:, i], test_predictions[:, i])
+    plt.xlabel('True Values [{}]'.format(params_label[i]))
+    plt.ylabel('Predictions[{}]'.format(params_label[i]))
+    plt.xlim(lims[i])
+    plt.ylim(lims[i])
+    plt.plot(lims, lims, 'r')
+plt.show()
+
+plt.figure(figsize = (15,15))
+for i in range(len(params)):
+    plt.subplot(3,2,i+1)
+    error = test_predictions[:,i] - test_labels[:,i]
+    plt.hist(error, bins = 25)
+    plt.xlabel("Prediction Error [{}]".format(params_label[i]))
+    plt.ylabel("Count")
 plt.show()

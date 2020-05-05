@@ -1,5 +1,6 @@
 from molyso.generic.otsu import threshold_otsu
 from matplotlib.colors import LinearSegmentedColormap
+from shapely.geometry import LineString
 from skimage.segmentation import active_contour
 import matplotlib.pyplot as plt
 import numpy as np
@@ -199,4 +200,37 @@ class contour_real:
         plt.legend(fontsize="x-small")
         plt.show()
 
-#class contour_bacteria(self, bacteria):
+class boundary:
+    def __init__(self, r, l, R, theta):
+        print(r,l,R,theta)
+        self.r = r
+        self.l = l
+        self.R = R
+        self.theta = theta*np.pi/180
+        self.dx = 0.01
+        self.rotation_matrix = np.array(((np.cos(self.theta), -np.sin(self.theta)), (np.sin(self.theta), np.cos(self.theta))))
+
+        #Define the spline of the curved cylinder
+        self.spline = np.array([[x, self._fn(x)] for x in np.arange(-self.l/2, self.l/2+self.dx, self.dx)]).dot(np.transpose(self.rotation_matrix))
+
+        #Define boundary
+        self.boundary = list(LineString(self.spline).buffer(self.r).exterior.coords)
+
+    def _fn(self, x):
+        """ Function describing a circle with center at (0, -R) and
+        a radius of R """
+        return np.sign(self.R)*np.sqrt(self.R**2 - x**2) - self.R
+
+    def _transform_vertices(self, verts, m, pixel_size, centroid):
+        verts = verts*m #magnification
+        verts = verts / pixel_size #scaling by size of pixels
+        verts[:,[0, 1]] = verts[:,[1, 0]] #make horizontal
+        verts = verts + centroid # move by centroid
+        return verts
+    def get_spline(self, m, pixel_size, centroid):
+        return self._transform_vertices(self.spline, m, pixel_size, centroid)
+    def get_boundary(self, m, pixel_size, centroid):
+        verts_boundary = np.array(list(map(list, self.boundary)))
+        verts_boundary = self._transform_vertices(verts_boundary, m, pixel_size, centroid)
+        return verts_boundary
+
