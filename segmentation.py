@@ -140,6 +140,9 @@ model_history = model.fit(train_dataset, epochs=EPOCHS,
                           validation_steps=VALIDATION_STEPS,
                           validation_data=val_dataset,
                           callbacks=[DisplayCallback()])
+# Save model
+model.save('saved_model/segmentation')
+
 loss = model_history.history['loss']
 val_loss = model_history.history['val_loss']
 
