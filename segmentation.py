@@ -40,20 +40,21 @@ def create_mask(pred_mask):
   pred_mask = pred_mask[..., tf.newaxis]
   return pred_mask[0]
 
-def segment_cell(cell, model):
+def segment_cell(cell, model, pad_flag = True):
     # Normalize
     cell = (cell-np.min(cell))/(np.max(cell)-np.min(cell))
 
-    # Pad cell
-    height = 50
-    pad = (height - cell.shape[0]) / 2
-    if pad.is_integer():
-        cell = np.pad(cell, ((int(pad), int(
-            pad)), (0, 0)), mode='constant', constant_values=0)
-    else:
-        cell = np.pad(cell, ((
-            int(pad - 0.5), int(pad + 0.5)), (0, 0)),
-            mode='constant', constant_values=0)
+    if pad_flag:
+        # Pad cell
+        height = 50
+        pad = (height - cell.shape[0]) / 2
+        if pad.is_integer():
+            cell = np.pad(cell, ((int(pad), int(
+                pad)), (0, 0)), mode='constant', constant_values=0)
+        else:
+            cell = np.pad(cell, ((
+                int(pad - 0.5), int(pad + 0.5)), (0, 0)),
+                mode='constant', constant_values=0)
 
     # Add extra channel
     cell = cell[...,tf.newaxis]
@@ -63,10 +64,11 @@ def segment_cell(cell, model):
     pixelated_mask = create_mask(prediction)[:,:,0].numpy()
 
     # Remove padding 
-    if pad.is_integer():
-        pixelated_mask = pixelated_mask[int(pad):-int(pad),:]
-    else:
-        pixelated_mask = pixelated_mask[int(pad-0.5):-int(pad+0.5), :]
+    if pad_flag:
+        if pad.is_integer():
+            pixelated_mask = pixelated_mask[int(pad):-int(pad),:]
+        else:
+            pixelated_mask = pixelated_mask[int(pad-0.5):-int(pad+0.5), :]
 
     return pixelated_mask
 

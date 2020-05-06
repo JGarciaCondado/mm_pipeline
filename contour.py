@@ -202,7 +202,6 @@ class contour_real:
 
 class boundary:
     def __init__(self, r, l, R, theta):
-        print(r,l,R,theta)
         self.r = r
         self.l = l
         self.R = R
