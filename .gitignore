@@ -11,4 +11,7 @@ Thumbs.db
 # Python generated #
 ####################
 __pycache__/
-
+*.py.swp
+# Datasets #
+###########
+dataset/
