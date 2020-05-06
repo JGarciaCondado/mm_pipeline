@@ -131,6 +131,17 @@ def horizontal_probability_density(im):
     counts = counts/np.sum(counts)
     return counts
 
+def extract_density_photons(im, pixel_size, m, r, noise):
+    #Treat zeros as NaNs for mean
+    im = im.astype('float')
+    im[im == 0.0] = np.nan
+    counts = np.nanmean(im, axis=0)
+    counts = counts - noise
+    total_counts = np.sum(counts)
+    volume = pixel_size/m*np.pi*r**2
+    density = total_counts/volume
+    return density
+
 class MultiplePeaks(Exception): pass
 class NoPeaksFound(Exception): pass
 

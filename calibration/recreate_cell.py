@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import sys
 sys.path.append('../')
 
-from extraction import get_centerline, clean_centerline, debranch_centerline, calculate_theta, calculate_l, convert_centerline, calculate_R, calculate_r, horizontal_probability_density, fwhm, grid_search_r_sigma
+from extraction import get_centerline, clean_centerline, debranch_centerline, calculate_theta, calculate_l, convert_centerline, calculate_R, calculate_r, horizontal_probability_density, fwhm, grid_search_r_sigma, extract_density_photons
 from rmatching import match_r_and_psf, convolved_circle_px, cauchy, convolve_cauchy, optimum_r_and_psf, optimum_cauchy, model_cauchy, model
 
 #TODO use new BacteriaModel
@@ -146,6 +146,9 @@ plt.show()
 plt.title("Rotated and cropped caps")
 plt.imshow(cell_rot[y_min:y_max, :])
 plt.show()
+
+#Extract density
+print("Photon density: {}".format(extract_density_photons(cell_rot[y_min:y_max, :], 4.4, 40, 0.5, 200)))
 
 
 #Plot probability density histogram
