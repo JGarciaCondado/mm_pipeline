@@ -16,3 +16,4 @@ __pycache__/
 ###########
 dataset/
 segmentation_examples/*.npy
+RNAP_experiment/data
