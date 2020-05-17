@@ -51,8 +51,8 @@ avg_positions = np.mean(positions, axis=1)
 channel_width = 26
 
 # Get first channel in the image
-channel = im_rot_cr[:, int(avg_positions[4] - channel_width / 2):
-                           int(avg_positions[4] + channel_width / 2)]
+channel = im_rot_cr[:, int(avg_positions[6] - channel_width / 2):
+                           int(avg_positions[6] + channel_width / 2)]
 for i in range(len(avg_positions)):
     chn = im_rot_cr[:, int(avg_positions[i] - channel_width / 2):
                            int(avg_positions[i] + channel_width / 2)]
@@ -104,24 +104,28 @@ plt.show()
 # Obtain vertical smoothed intensity profile of channel
 profile = vertical_mean(channel)
 profile = simple_baseline_correction(profile)
+plt.plot(range(len(profile)), profile)
 profile = hamming_smooth(profile, 10)
+plt.plot(range(len(profile)), profile)
+plt.show()
+
 
 # Find extrema in the profile by sliding window approach
-extrema = find_extrema_and_prominence(profile, 15)
+extrema = find_extrema_and_prominence(profile, 5)
 
 # Define cells positions
-positions = [_pos for _pos in extrema.minima if extrema.prominence[_pos] > 0]
+positions = [_pos for _pos in extrema.minima if profile[_pos] < 0]
 positions = positions + [profile.size]
 # Check certain requirements to show they are cells
 # Those smaller than 10 and bigger than 70
 cells = [[_last_pos, _pos] for _last_pos, _pos in zip(
-    [0] + positions, positions) if _pos - _last_pos > 10 and _pos - _last_pos < 70]
+    [0] + positions, positions) if _pos - _last_pos > 10 and _pos - _last_pos < 100]
 
 # Check that cells mean intensity value above some threshold
 cells = [[start, end] for start, end in cells if np.mean(channel[start:end, :]) > 2.0*10**3]
 
 # Final padding added to make standard size
-default_height = 70
+default_height = 100
 
 # Show cells with final padding
 N_half = int(np.ceil(len(cells) / 2))
