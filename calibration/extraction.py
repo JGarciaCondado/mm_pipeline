@@ -270,6 +270,27 @@ def extract_params(cell, m, pixel_size):
 
     return l, R, theta
 
+
+def extract_all_params(cell, m, pixel_size):
+    shape = cell.shape
+    length = shape[0]
+    contour = contour_real(cell, 1.0)
+    active_contour = contour.active_contour
+    boundary = Polygon(active_contour).buffer(0)
+    centroid = (boundary.centroid.x, boundary.centroid.y)
+    [minx, miny, maxx, maxy] = boundary.bounds
+    centroid = (boundary.centroid.x, boundary.centroid.y)
+    centerline = get_centerline(boundary)
+    centerline = clean_centerline(centerline)
+    centerline = debranch_centerline(centerline)
+    [spline, [max_coor, min_coor], remove_coords] = centerline
+    y_max, y_min = int(max_coor[1]), int(min_coor[1])
+    theta = calculate_theta(centerline)
+    l = calculate_l(centerline, pixel_size, m)
+    centerline = convert_centerline(centerline, theta, pixel_size, m, l)
+    R = calculate_R(centerline, l)
+
+    return l, R, theta, centroid
 def extract_cell_info(filename):
     pixel_size = 4.4  # pixel size
     NA = 0.95  # Numerical aperture

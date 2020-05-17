@@ -22,7 +22,7 @@ def compare_images(original_im, generated_im, normalize = True, blur = True, sig
 def MSE(original_im, generated_im):
     if original_im.shape != generated_im.shape:
         raise ValueError("Images must be the same shape")
-    diff = original_im-generate_im
+    diff = original_im-generated_im
     square_diff = np.square(diff)
     sum_square_diff = np.sum(square_diff)
     mse = sum_square_diff/original_im.size
