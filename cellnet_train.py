@@ -26,8 +26,6 @@ DATASET_SIZE = examples.shape[0]
 examples = np.array([(example - np.min(example)) / (np.max(example) - np.min(example)) for example in examples])
 examples = examples[..., tf.newaxis]
 targets = np.array([[r, l, R, theta, centroid[0], centroid[1]] for r,l,R,theta, centroid in targets])
-target_mean, target_std  = np.mean(targets, axis=0), np.std(targets, axis=0)
-targets = np.array([(target - target_mean)/target_std for target in targets])
 
 # Create full dataset
 dataset = tf.data.Dataset.from_tensor_slices((examples, targets))
@@ -43,34 +41,34 @@ test_dataset = dataset.skip(train_size)
 val_dataset = test_dataset.take(val_size).batch(1)
 test_dataset = test_dataset.skip(val_size)
 
-model = CellNet.create_model()
+model = CellNet().create_model()
 model.summary()
 
 #Plot  image with boundaries and predictions
 test_predictions = model.predict(test_dataset.batch(1))
-test_predictions = np.array([target*target_std+target_mean for target in test_predictions])
 test_labels = []
 test_images = []
 for image, params in test_dataset:
     test_images.append(image)
-    test_labels.append(params*target_std+target_mean)
+    test_labels.append(params)
 test_labels = np.array(test_labels)
 
-for i in range(1):
-    r, l, R, theta, centroid1, centroid2 = test_labels[i]
-    plt.imshow(test_images[i][:, :, 0])
-    Boundary = boundary(r,l,R,theta)
-    verts_spline = Boundary.get_spline(40, 4.4, [centroid1, centroid2])
-    verts_boundary = Boundary.get_boundary(40, 4.4, [centroid1, centroid2])
-    plt.plot(verts_spline[:, 0], verts_spline[:, 1])
-    plt.plot(verts_boundary[:, 0], verts_boundary[:, 1])
-    r, l, R, theta, centroid1, centroid2 = test_predictions[i]
-    Boundary = boundary(r,l,R,theta)
-    verts_spline = Boundary.get_spline(40, 4.4, [centroid1, centroid2])
-    verts_boundary = Boundary.get_boundary(40, 4.4, [centroid1, centroid2])
-    plt.plot(verts_spline[:, 0], verts_spline[:, 1])
-    plt.plot(verts_boundary[:, 0], verts_boundary[:, 1])
-    plt.show()
+# Cant show boundary at first sin values are out of bound
+#for i in range(1):
+#    r, l, R, theta, centroid1, centroid2 = test_labels[i]
+#    plt.imshow(test_images[i][:, :, 0])
+#    Boundary = boundary(r,l,R,theta)
+#    verts_spline = Boundary.get_spline(40, 4.4, [centroid1, centroid2])
+#    verts_boundary = Boundary.get_boundary(40, 4.4, [centroid1, centroid2])
+#    plt.plot(verts_spline[:, 0], verts_spline[:, 1])
+#    plt.plot(verts_boundary[:, 0], verts_boundary[:, 1])
+#    r, l, R, theta, centroid1, centroid2 = test_predictions[i]
+#    Boundary = boundary(r,l,R,theta)
+#    verts_spline = Boundary.get_spline(40, 4.4, [centroid1, centroid2])
+#    verts_boundary = Boundary.get_boundary(40, 4.4, [centroid1, centroid2])
+#    plt.plot(verts_spline[:, 0], verts_spline[:, 1])
+#    plt.plot(verts_boundary[:, 0], verts_boundary[:, 1])
+#    plt.show()
 
 # Plot true vs prediction
 params_label = ['r', 'l', 'R', 'theta', 'x-centroid', 'y-centroid']
@@ -114,7 +112,7 @@ plotter = tfdocs.plots.HistoryPlotter(smoothing_std=2)
 
 
 #Early stopping
-model = CellNet.create_model()
+#model = CellNet.create_model()
 
 # The patience parameter is the amount of epochs to check for improvement
 early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=50)
@@ -125,7 +123,7 @@ early_history = model.fit(
                           validation_steps=VALIDATION_STEPS,
                           validation_data=val_dataset,
                           verbose =0,
-                          callbacks=[early_stop, tfdocs.modeling.EpochDots()])
+                          callbacks=[early_stop])#, tfdocs.modeling.EpochDots()])
 
 plotter.plot({'Early Stopping': early_history}, metric = "mae")
 plt.ylim([0, 1])
@@ -139,12 +137,11 @@ print("Testing set Mean Abs Error: {:5.2f}".format(mae))
 
 # Plot boundaries
 test_predictions = model.predict(test_dataset.batch(1))
-test_predictions = np.array([target*target_std+target_mean for target in test_predictions])
 test_labels = []
 test_images = []
 for image, params in test_dataset:
     test_images.append(image)
-    test_labels.append(params*target_std+target_mean)
+    test_labels.append(params)
 test_labels = np.array(test_labels)
 
 for i in range(1):
