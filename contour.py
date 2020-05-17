@@ -209,6 +209,7 @@ class boundary:
         self.dx = 0.01
         self.rotation_matrix = np.array(((np.cos(self.theta), -np.sin(self.theta)), (np.sin(self.theta), np.cos(self.theta))))
 
+        print(r, l, R, theta)
         #Define the spline of the curved cylinder
         self.spline = np.array([[x, self._fn(x)] for x in np.arange(-self.l/2, self.l/2+self.dx, self.dx)]).dot(np.transpose(self.rotation_matrix))
 
@@ -233,3 +234,30 @@ class boundary:
         verts_boundary = self._transform_vertices(verts_boundary, m, pixel_size, centroid)
         return verts_boundary
 
+class bacteria_polygon:
+    def __init__(self, params, m_ratio):
+        [self.r, self.l, self.R, self.theta, self.x_pos, self.y_pos] = params
+        self.r = self.r*m_ratio
+        self.l = self.l*m_ratio
+        self.R = self.R*m_ratio
+        self.theta = self.theta*np.pi/180
+        self.dx = 0.01
+        self.rotation_matrix = np.array(((np.cos(self.theta), -np.sin(self.theta)), (np.sin(self.theta), np.cos(self.theta))))
+
+        #Define the spline of the curved cylinder
+        self.spline = np.array([[x+self.x_pos, self._fn(x)+self.y_pos] for x in np.arange(-self.l/2, self.l/2+self.dx, self.dx)]).dot(np.transpose(self.rotation_matrix))
+
+        #Define boundary
+        self.polygon = LineString(self.spline).buffer(self.r)
+
+        # Define area
+        self.area = self.polygon.area
+
+    def _fn(self, x):
+        """ Function describing a circle with center at (0, -R) and
+        a radius of R """
+        return np.sign(self.R)*np.sqrt(self.R**2 - x**2) - self.R
+
+    def diff_area(self, polygon):
+        diff = self.polygon.symmetric_difference(polygon)
+        return diff.area/self.area
