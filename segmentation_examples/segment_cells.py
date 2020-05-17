@@ -4,6 +4,7 @@ import sys
 import matplotlib.pyplot as plt
 sys.path.append('../')
 from segmentation import segment_cell, display, boundary_from_pixelated_mask, smooth_boundary, display_boundary
+from molyso.generic.otsu import threshold_otsu
 
 cells = []
 for i in range(4):
@@ -26,7 +27,31 @@ for i, cell in enumerate(cells):
     smoothed_boundary = smooth_boundary(boundary, 5)
     boundaries = [boundary, smoothed_boundary]
     for i in range(len(boundaries)):
-        plt.plot(boundaries[i][:,0], boundaries[i][:,1], colors[i], label=title[i])
+        plt.plot(boundaries[i][:,0], boundaries[i][:,1], colors[i], label=title[i], linewidth=2)
+    plt.legend()
+    # Shrink current axis's height by 10% on the bottom
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0 + box.height * 0.1,
+                 box.width, box.height * 0.9])
+
+    # Put a legend below current axis
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1),
+              fancybox=True, shadow=True, ncol=5)
+plt.show()
+
+#Pixelation by otsu
+fig = plt.figure(figsize=(15, 15))
+title = ['Pixelated Boundary', 'Smoothed Boundary']
+colors = ['r', 'g']
+for i, cell in enumerate(cells):
+    ax = plt.subplot(2,2,i+1)
+    plt.imshow(cell)
+    pixelated_mask = cell > threshold_otsu(cell)
+    boundary = boundary_from_pixelated_mask(pixelated_mask)
+    smoothed_boundary = smooth_boundary(boundary, 5)
+    boundaries = [boundary, smoothed_boundary]
+    for i in range(len(boundaries)):
+        plt.plot(boundaries[i][:,0], boundaries[i][:,1], colors[i], label=title[i], linewidth=2)
     plt.legend()
     # Shrink current axis's height by 10% on the bottom
     box = ax.get_position()
