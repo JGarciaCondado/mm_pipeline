@@ -1,10 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
+from skimage.metrics import structural_similarity as ssim
 sys.path.append('../')
 
 from extraction import get_centerline, clean_centerline, debranch_centerline, calculate_theta, calculate_l, convert_centerline, calculate_R, calculate_r, horizontal_probability_density, fwhm, grid_search_r_sigma, extract_density_photons
 from rmatching import match_r_and_psf, convolved_circle_px, cauchy, convolve_cauchy, optimum_r_and_psf, optimum_cauchy, model_cauchy, model
+from comparison import compare_images
 
 #TODO use new BacteriaModel
 
@@ -35,7 +37,7 @@ ex_wv = 0.8
 em_wv = 0.59
 
 #Load image
-cell = np.load("Cell_test_1.npy")
+cell = np.load("Cell_test_2.npy")
 rm_indices = np.where(cell==0.0)[0]
 cell = np.delete(cell, rm_indices, axis=0)
 
@@ -238,7 +240,6 @@ im_rot = ndimage.rotate(image, -theta, reshape=False)
 im_rot = im_rot.astype('float')
 im_rot[im_rot == 0.0] = np.nan
 
-
 #Compare distribution
 image_model_px = horizontal_probability_density(im_rot[y_min:y_max, :])
 plt.hist(bins[:-1], bins, weights=image_model_px, label="Model Discrete Experimental PDF")
@@ -256,26 +257,82 @@ plt.show()
 bacteria = SpherocylindricalBacteria(l-rc/11,rc/11, R, theta, 2000,  ex_wv, em_wv)
 im_c = microscope.image_bacteria_cauchy(bacteria, centroid, shape, gamma=gc, noise=200)
 
-#Images
+#Normalised images
+cell_norm = (cell-np.min(cell))/(np.max(cell)-np.min(cell))
+image_norm = (image-np.min(image))/(np.max(image)-np.min(image))
+im_c_norm = (im_c-np.min(im_c))/(np.max(im_c)-np.min(im_c))
+
+min_val = np.min([np.min(cell), np.min(image), np.min(im_c)])
+max_val = np.max([np.max(cell), np.max(image), np.max(im_c)])
+
+cell = cell.astype('float64')
+
+#Comparison
+print("Non-normalized no blur")
+print(compare_images(cell, image, False, False))
+print("Normalized no blur")
+print(compare_images(cell, image, True, False))
+print("Normalized blur")
+print(compare_images(cell, image, True, True))
+print("SSIM non-normalized")
+print(ssim(cell, image))
+print("SSIM normalized")
+print(ssim(cell_norm, image_norm))
+
+
+#Images gaussian
 plt.subplot(2,3,1)
 plt.title("Original image")
+plt.ylabel("Non-normalised")
 plt.imshow(cell)
 plt.subplot(2,3,2)
-plt.title("Model image, gaussian")
+plt.title("Model image")
 plt.imshow(image)
 plt.subplot(2,3,3)
-plt.title("Model image, cauchy")
-plt.imshow(im_c)
-cell = (cell-np.min(cell))/(np.max(cell)-np.min(cell))
-image = (image-np.min(image))/(np.max(image)-np.min(image))
-im_c = (im_c-np.min(im_c))/(np.max(im_c)-np.min(im_c))
+plt.title("Residual")
+plt.imshow(cell-image)
 plt.subplot(2,3,4)
-plt.imshow(cell)
+plt.ylabel("Normalised")
+plt.imshow(cell_norm)
 plt.subplot(2,3,5)
-plt.imshow(image)
+plt.imshow(image_norm)
 plt.subplot(2,3,6)
-plt.imshow(im_c)
+plt.imshow(cell_norm-image_norm)
 plt.show()
+
+#Images cauchy
+plt.subplot(2,3,1)
+plt.title("Original image")
+plt.ylabel("Non-normalised")
+plt.imshow(cell)
+plt.subplot(2,3,2)
+plt.title("Model image")
+plt.imshow(im_c)
+plt.subplot(2,3,3)
+plt.title("Residual")
+plt.imshow(cell-im_c)
+plt.subplot(2,3,4)
+plt.ylabel("Normalised")
+plt.imshow(cell_norm)
+plt.subplot(2,3,5)
+plt.imshow(im_c_norm)
+plt.subplot(2,3,6)
+plt.imshow(cell_norm-im_c_norm)
+plt.show()
+
+#Comparison
+print("Non-normalized no blur")
+print(compare_images(cell, im_c, False, False))
+print("Normalized no blur")
+print(compare_images(cell, im_c, True, False))
+print("Normalized blur")
+print(compare_images(cell, im_c, True, True))
+print("SSIM non-normalized")
+print(ssim(cell, im_c))
+print("SSIM normalized")
+print(ssim(cell_norm, im_c_norm))
+
+
 
 
 #Plot image with measured boundary and new boundary
