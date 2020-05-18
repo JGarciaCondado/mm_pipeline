@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
+from matplotlib import rc
+rc('text', usetex=True)
 
 images = np.load('im_stack_pd.npy')
 images_gt = np.load('im_gt_stack_pd.npy')
@@ -24,7 +26,9 @@ for i in range(len(densities)):
 
 fig = plt.figure()
 ax = fig.gca(projection='3d')
-
+ax.set_xlabel(r'$\gamma$ (nº of photons)', fontsize=14)
+ax.set_ylabel(r'$n$ (molecules/$\mu m^3$)', fontsize=14)
+ax.set_zlabel('Accuracy', fontsize=14)
 # Make data.
 X = photons
 Y = densities
