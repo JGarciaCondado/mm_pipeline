@@ -130,7 +130,8 @@ class contour_real:
         self.colors = [(0, 0, 0), (1, 0, 0)]
         self.cm = LinearSegmentedColormap.from_list('test', self.colors, N=np.amax(self.im))
         self.pixelated_contour = self._px_contour()
-        self.smoothed_contour = self.smooth()
+        self.smoothed_contour = self.smooth_fd()
+        self.fd_contour = self.smooth()
         self.active_contour = active_contour(self.im, self.smoothed_contour, alpha=2.0, beta=20.0, w_line=-0.4, max_px_move=0.05)
 
     def _px_contour(self):
@@ -165,6 +166,15 @@ class contour_real:
         coeffs = efd.elliptic_fourier_descriptors(self.pixelated_contour, order=10)
         contour = efd.reconstruct_contour(coeffs, locus=locus, num_points=100)
         return contour
+
+    def smooth_fd(self):
+        self.f_order = 10
+        complex_boundary = np.array([x+1j*y for x, y in self.pixelated_contour])
+        dft = np.fft.fft(complex_boundary)
+        dft[1+self.f_order:-self.f_order] = 0
+        smoothed_boundary = np.fft.ifft(dft)
+        smoothed_boundary = np.stack((smoothed_boundary.real, smoothed_boundary.imag),-1)
+        return smoothed_boundary
 
     def show_pixelated_contour(self):
         fig, ax = plt.subplots()
@@ -209,7 +219,6 @@ class boundary:
         self.dx = 0.01
         self.rotation_matrix = np.array(((np.cos(self.theta), -np.sin(self.theta)), (np.sin(self.theta), np.cos(self.theta))))
 
-        print(r, l, R, theta)
         #Define the spline of the curved cylinder
         self.spline = np.array([[x, self._fn(x)] for x in np.arange(-self.l/2, self.l/2+self.dx, self.dx)]).dot(np.transpose(self.rotation_matrix))
 

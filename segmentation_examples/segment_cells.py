@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 sys.path.append('../')
 from segmentation import segment_cell, display, boundary_from_pixelated_mask, smooth_boundary, display_boundary
 from molyso.generic.otsu import threshold_otsu
+from matplotlib_scalebar.scalebar import ScaleBar
 
 cells = []
 for i in range(4):
@@ -16,49 +17,37 @@ for i in range(4):
 
 model = tf.keras.models.load_model('../saved_model/segmentation')
 
-fig = plt.figure(figsize=(15, 15))
+f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex=True, sharey=True)
+axes = [ax1, ax2, ax3, ax4]
+scalebar = ScaleBar(0.11, 'um', frameon=False, color='w', location=2) # 1 pixel = 0.2 meter
+plt.gca().add_artist(scalebar)
 title = ['Pixelated Boundary', 'Smoothed Boundary']
 colors = ['r', 'g']
 for i, cell in enumerate(cells):
-    ax = plt.subplot(2,2,i+1)
-    plt.imshow(cell)
+    axes[i].imshow(cell)
+    axes[i].axis('off')
     pixelated_mask = segment_cell(cell, model)
     boundary = boundary_from_pixelated_mask(pixelated_mask)
     smoothed_boundary = smooth_boundary(boundary, 5)
-    boundaries = [boundary, smoothed_boundary]
-    for i in range(len(boundaries)):
-        plt.plot(boundaries[i][:,0], boundaries[i][:,1], colors[i], label=title[i], linewidth=2)
-    plt.legend()
-    # Shrink current axis's height by 10% on the bottom
-    box = ax.get_position()
-    ax.set_position([box.x0, box.y0 + box.height * 0.1,
-                 box.width, box.height * 0.9])
-
-    # Put a legend below current axis
-    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1),
-              fancybox=True, shadow=True, ncol=5)
+    boundaries = [boundary]#, smoothed_boundary]
+    for j in range(len(boundaries)):
+        axes[i].plot(boundaries[j][:,0], boundaries[j][:,1], colors[j], label=title[j], linewidth=1.5)
 plt.show()
 
 #Pixelation by otsu
-fig = plt.figure(figsize=(15, 15))
+f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex=True, sharey=True)
+axes = [ax1, ax2, ax3, ax4]
 title = ['Pixelated Boundary', 'Smoothed Boundary']
 colors = ['r', 'g']
+scalebar = ScaleBar(0.11, 'um', frameon=False, color='w', location=2) # 1 pixel = 0.2 meter
+plt.gca().add_artist(scalebar)
 for i, cell in enumerate(cells):
-    ax = plt.subplot(2,2,i+1)
-    plt.imshow(cell)
+    axes[i].imshow(cell)
+    axes[i].axis('off')
     pixelated_mask = cell > threshold_otsu(cell)
     boundary = boundary_from_pixelated_mask(pixelated_mask)
     smoothed_boundary = smooth_boundary(boundary, 5)
-    boundaries = [boundary, smoothed_boundary]
-    for i in range(len(boundaries)):
-        plt.plot(boundaries[i][:,0], boundaries[i][:,1], colors[i], label=title[i], linewidth=2)
-    plt.legend()
-    # Shrink current axis's height by 10% on the bottom
-    box = ax.get_position()
-    ax.set_position([box.x0, box.y0 + box.height * 0.1,
-                 box.width, box.height * 0.9])
-
-    # Put a legend below current axis
-    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.1),
-              fancybox=True, shadow=True, ncol=5)
+    boundaries = [boundary]#, smoothed_boundary]
+    for j in range(len(boundaries)):
+        axes[i].plot(boundaries[j][:,0], boundaries[j][:,1], colors[j], label=title[j], linewidth=1.5)
 plt.show()
