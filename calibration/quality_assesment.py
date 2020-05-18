@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib_scalebar.scalebar import ScaleBar
 import sys
 sys.path.append('../')
 from models import Microscope, SpherocylindricalBacteria
@@ -40,8 +41,14 @@ image = (image-np.min(image))/(np.max(image)-np.min(image))
 print(MSE(trench_reconstruction, image))
 print(l2_norm(trench_reconstruction, image))
 print(MSSIM(trench_reconstruction, image))
-plt.subplot(1,2,1)
-plt.imshow(trench_reconstruction)
-plt.subplot(1,2,2)
-plt.imshow(image)
+f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+scalebar = ScaleBar(0.11, 'um', frameon=False, color='w') # 1 pixel = 0.2 meter
+plt.gca().add_artist(scalebar)
+ax1.imshow(trench_reconstruction)
+ax1.set_title('original')
+ax1.axis('off')
+ax2.imshow(image)
+plt.gca().add_artist(scalebar)
+ax2.set_title('recreated')
+ax2.axis('off')
 plt.show()
