@@ -1,4 +1,5 @@
 import tensorflow as tf
+from matplotlib_scalebar.scalebar import ScaleBar
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
@@ -14,11 +15,14 @@ model = tf.keras.models.load_model('../saved_model/segmentation')
 pixelated_mask = segment_cell(cell, model)
 boundary = boundary_from_pixelated_mask(pixelated_mask)
 
-plt.figure(figsize=(15, 15))
 for i in range(10):
     plt.subplot(2,5,i+1)
-    plt.title('Number of descriptors: {}'.format(i+1))
+    if i ==0:
+        scalebar = ScaleBar(0.11, 'um', frameon=False, color='w', location=2) # 1 pixel = 0.2 meter
+        plt.gca().add_artist(scalebar)
+    plt.title('nº of EFDs: {}'.format(i+1))
     plt.imshow(cell)
     smoothed_boundary = smooth_boundary(boundary, i+1)
     plt.plot(smoothed_boundary[:,0], smoothed_boundary[:,1], 'r')
+    plt.axis('off')
 plt.show()

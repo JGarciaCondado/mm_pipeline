@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from tifffile import imread
 from extraction import extract_all_params, extract_params
 from scipy.stats import norm
+from scipy.interpolate import splrep, sproot, splev
 
 directory = "Data"
 params = []
@@ -45,6 +46,12 @@ plt.show()
 
 mu_l, std_l = norm.fit(params[:, 0])
 bins = np.arange(0, 6, 0.25)
+hist, bin_edges = np.histogram(params[:, 0], bins=bins, normed=True)
+spl = splrep(np.arange(0.125, 5.8, 0.25), hist)
+xim = np.arange(0, 6, 0.01)
+yim = splev(xim, spl)
+yim = [y if y>0.0 else 0.0 for y in yim]
+plt.plot(xim, yim)
 plt.hist(params[:, 0], bins, density=True)
 xmin, xmax = plt.xlim()
 x = np.linspace(xmin, xmax, 100)

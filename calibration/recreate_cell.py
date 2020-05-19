@@ -7,6 +7,7 @@ sys.path.append('../')
 from extraction import get_centerline, clean_centerline, debranch_centerline, calculate_theta, calculate_l, convert_centerline, calculate_R, calculate_r, horizontal_probability_density, fwhm, grid_search_r_sigma, extract_density_photons
 from rmatching import match_r_and_psf, convolved_circle_px, cauchy, convolve_cauchy, optimum_r_and_psf, optimum_cauchy, model_cauchy, model
 from comparison import compare_images
+from matplotlib_scalebar.scalebar import ScaleBar
 
 #TODO use new BacteriaModel
 
@@ -37,7 +38,7 @@ ex_wv = 0.8
 em_wv = 0.59
 
 #Load image
-cell = np.load("Cell_test_2.npy")
+cell = np.load("Cell_test_1.npy")
 rm_indices = np.where(cell==0.0)[0]
 cell = np.delete(cell, rm_indices, axis=0)
 
@@ -47,9 +48,28 @@ length = shape[0]
 
 #Obtain contour of cell
 contour = contour_real(cell, 1.0)
-active_contour = contour.active_contour
-boundary = Polygon(active_contour).buffer(0) #Fixes any holes in polygon
+smooth_contour = contour.active_contour
+boundary = Polygon(smooth_contour).buffer(0) #Fixes any holes in polygon
 [minx, miny, maxx, maxy] = boundary.bounds
+
+#Plot cell with boudnaries
+ax = plt.subplot(111)
+plt.imshow(cell, origin='lower')
+plt.axis('off')
+scalebar = ScaleBar(0.11, 'um', frameon=False, color='w', location=3) # 1 pixel = 0.2 meter
+plt.gca().add_artist(scalebar)
+plt.scatter(boundary.centroid.x, boundary.centroid.y, label="Centroid")
+plt.plot(contour.pixelated_contour[:, 0], contour.pixelated_contour[:, 1], 'y', lw=1.2, label="Pixelated Contour", color='r')
+plt.plot(contour.smoothed_contour[:, 0], contour.smoothed_contour[:, 1], 'y', lw=1.2, label="Smoothed Contour", color='k')
+plt.legend()
+# Shrink current axis by 20%
+box = ax.get_position()
+ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
+# Put a legend to the right of the current axis
+ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+plt.show()
+
 
 #Centroid of cell
 centroid = (boundary.centroid.x, boundary.centroid.y)
@@ -57,9 +77,10 @@ centroid = (boundary.centroid.x, boundary.centroid.y)
 #Obtain centerline
 centerline = get_centerline(boundary)
 
+
 #Plot image with centerline and boundary
 fig, ax = plt.subplots()
-ax.plot(contour.active_contour[:, 0], contour.active_contour[:, 1], 'y', lw=1, label="Active Contour")
+ax.plot(contour.smoothed_contour[:, 0], contour.smoothed_contour[:, 1], 'k', lw=1.2, label="smoothed contour")
 
 #Plot line segments that make up the centerline 
 for line in list(centerline.geoms):
@@ -75,8 +96,7 @@ centerline = clean_centerline(centerline)
 coor_x, coor_y = zip(*centerline[0])
 ax.scatter(coor_x, coor_y, c='b', label="end points")
 
-coor_x, coor_y = zip(*centerline[2])
-ax.scatter(coor_x, coor_y, c='g', label="branch points")
+coor_x_b, coor_y_b = zip(*centerline[2])
 
 #Debranch centerline
 centerline = debranch_centerline(centerline)
@@ -84,12 +104,23 @@ centerline = debranch_centerline(centerline)
 #Plot removed coordinates
 spline_x, spline_y = zip(*centerline[2])
 ax.scatter(spline_x, spline_y, c='m', label="debranch points")
+ax.scatter(coor_x_b, coor_y_b, c='g', label="branch points")
+
 
 #Plot over original image
 plt.imshow(cell, origin='lower')
-plt.title("Cell boundary and centerline")
+plt.axis('off')
+scalebar = ScaleBar(0.11, 'um', frameon=False, color='w', location=3) # 1 pixel = 0.2 meter
+plt.gca().add_artist(scalebar)
 plt.legend()
+# Shrink current axis by 20%
+box = ax.get_position()
+ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
+# Put a legend to the right of the current axis
+ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 plt.show()
+
 
 #TODO make sure that image shown has (0,0) in botom left hand corner for all
 
@@ -182,15 +213,28 @@ im_rot[im_rot == 0.0] = np.nan
 
 #Compare distribution
 image_model_px = horizontal_probability_density(im_rot[y_min:y_max, :])
-plt.hist(bins[:-1], bins, weights=image_model_px, label="Model Discrete Experimental PDF")
+#plt.hist(bins[:-1], bins, weights=image_model_px, label="Model Discrete Experimental PDF")
 spl = splrep(range(len(image_model_px)), image_model_px)
 xim = np.linspace(0, len(image_model_px), 100)
 yim = splev(xim, spl)
+yim = [y if y>0.0 else 0.0 for y in yim]
+#fig = plt.figure(figsize=(7,7))
+ax = plt.subplot(111)
 plt.plot(xim, yim, label="Model B-spline approximation of PDF")
 plt.plot(xorg, yorg, label="Experimental B-spline approximation of PDF")
+plt.ylabel('$p(x)$', fontsize=12)
+plt.xlabel('x (in pixels)', fontsize=12)
 plt.title('Model image horizontal PDF with noise removed and matched FWHM')
 #TODO fix axe positioning
 plt.legend()
+# Shrink current axis's height by 10% on the bottom
+box = ax.get_position()
+ax.set_position([box.x0, box.y0 + box.height * 0.1,
+                 box.width, box.height * 0.9])
+
+# Put a legend below current axis
+ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.12),
+          fancybox=True, shadow=True)
 plt.show()
 
 
@@ -225,9 +269,11 @@ plt.show()
 # Plot all different distribution
 rc, gc, hc = optimum_cauchy(original_px)
 rg, gg, hg = optimum_r_and_psf(original_px)
-plt.plot(xorg, yorg, label='original')
-plt.plot(np.arange(0, 26, 0.01), model_cauchy(np.arange(0,26, 0.01), rc, hc, gc), label="cauchy model")
-plt.plot(np.arange(0, 26, 0.01), model(np.arange(0,26, 0.01), rg, hg, gg), label="gaussian model")
+plt.plot(xorg, yorg, label='experimental pdf')
+plt.plot(np.arange(0, 26, 0.01), model_cauchy(np.arange(0,26, 0.01), rc, hc, gc), label="cauchy model pdf")
+plt.plot(np.arange(0, 26, 0.01), model(np.arange(0,26, 0.01), rg, hg, gg), label="gaussian model pdf")
+plt.xlabel('x (in pixels)', fontsize=14)
+plt.ylabel('$p(x)$', fontsize=14)
 plt.legend()
 plt.show()
 #Find optimum with density matching
@@ -241,16 +287,30 @@ im_rot = im_rot.astype('float')
 im_rot[im_rot == 0.0] = np.nan
 
 #Compare distribution
+ax = plt.subplot(111)
 image_model_px = horizontal_probability_density(im_rot[y_min:y_max, :])
-plt.hist(bins[:-1], bins, weights=image_model_px, label="Model Discrete Experimental PDF")
+#plt.hist(bins[:-1], bins, weights=image_model_px, label="Model Discrete Experimental PDF")
 spl = splrep(range(len(image_model_px)), image_model_px)
 xim = np.linspace(0, len(image_model_px), 100)
 yim = splev(xim, spl)
-plt.plot(xim, yim, label="Model B-spline approximation of PDF")
-plt.plot(xorg, yorg, label="Experimental B-spline approximation of PDF")
-plt.title('Model image horizontal PDF with noise removed and optimum r and sigma')
+yim = [y if y>0.0 else 0.0 for y in yim]
+plt.plot(xim, yim, label="Model B-spline approximation of PDF", fontsize=14)
+plt.plot(xorg, yorg, label="Experimental B-spline approximation of PDF", fontsize=14)
+:q
+:q
+plt.ylabel('$p(x)$', fontsize=14)
+plt.xlabel('x (in pixels)', fontsize=14)
+#plt.title('Model image horizontal PDF with noise removed and optimum r and sigma')
 #TODO fix axe positioning
 plt.legend()
+# Shrink current axis's height by 10% on the bottom
+box = ax.get_position()
+ax.set_position([box.x0, box.y0 + box.height * 0.1,
+                 box.width, box.height * 0.9])
+
+# Put a legend below current axis
+ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.12),
+          fancybox=True, shadow=True)
 plt.show()
 
 
@@ -337,9 +397,18 @@ print(ssim(cell_norm, im_c_norm))
 
 #Plot image with measured boundary and new boundary
 fig, ax = plt.subplots()
-ax.plot(contour.active_contour[:, 0], contour.active_contour[:, 1], 'y', lw=1, label="Active Contour")
+ax.plot(contour.active_contour[:, 0], contour.active_contour[:, 1], 'k', lw=1.5, label="Smoothed contour")
 bacteria_boundary = np.array(list(map(list, bacteria.boundary)))
 verts = microscope._transform_vertices(bacteria_boundary, bacteria, centroid)
-ax.plot(verts[:,0], verts[:, 1], 'g', lw=1, label="Ground Truth")
-plt.imshow(cell)
+ax.plot(verts[:,0], verts[:, 1], 'r', lw=1.5, label="Estimated boundary")
+scalebar = ScaleBar(0.11, 'um', frameon=False, color='w', location=3) # 1 pixel = 0.2 meter
+plt.gca().add_artist(scalebar)
+plt.imshow(cell, origin='lower')
+plt.legend()
+box = ax.get_position()
+ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
+# Put a legend to the right of the current axis
+ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+plt.axis('off')
 plt.show()

@@ -42,8 +42,8 @@ def main(arg_list):
     l_b = 4.5  # total length of cylindrical body excluding the caps
 
     # Ball park values
-    ex_wv = 0.8  # emmitted wavelength by microscope for excitation
-    em_wv = 0.59  # emitted wavelength due to fluorescence
+    ex_wv = 0.59  # emmitted wavelength by microscope for excitation
+    em_wv = 0.8  # emitted wavelength due to fluorescence
     pixel_size = 4.4  # pixel size
     NA = 0.95  # Numerical aperture
     magnification = 40  # magnification
