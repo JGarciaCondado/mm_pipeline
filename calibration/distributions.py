@@ -2,7 +2,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 from tifffile import imread
-from extraction import extract_params
+from extraction import extract_all_params, extract_params
 from scipy.stats import norm
 
 directory = "Data"
@@ -11,13 +11,38 @@ for f in os.listdir(directory):
     if f[-4:] != ".tif":
         continue
     im=imread(directory+'/'+f)
+    rm_indices = np.where(im==0.0)[0]
+    im = np.delete(im, rm_indices, axis=0)
     try:
-        l, R, theta = extract_params(im, 40, 4.4)
-        params.append([l, R, theta])
+        l, R, theta, centroid = extract_all_params(im, 40, 4.4)
+        cx = centroid[0]/im.shape[1]
+        cy = centroid[1]/im.shape[0]
+        params.append([l, R, theta, cx, cy])
     except:
         pass
 
 params = np.array(params)
+mu_x, std_x = norm.fit(params[:, 3])
+plt.hist(params[:, 3], density=True)
+xmin, xmax = plt.xlim()
+x = np.linspace(xmin, xmax, 100)
+p = norm.pdf(x, mu_x, std_x)
+plt.plot(x, p, 'k', linewidth=2)
+plt.xlabel('centroid_x')
+title = "Fit results: mu = %.2f,  std = %.2f" % (mu_x, std_x)
+plt.title(title)
+plt.show()
+mu_y, std_y = norm.fit(params[:, 4])
+plt.hist(params[:, 3], density=True)
+xmin, xmax = plt.xlim()
+x = np.linspace(xmin, xmax, 100)
+p = norm.pdf(x, mu_y, std_y)
+plt.plot(x, p, 'k', linewidth=2)
+plt.xlabel('centroid_y')
+title = "Fit results: mu = %.2f,  std = %.2f" % (mu_y, std_y)
+plt.title(title)
+plt.show()
+
 mu_l, std_l = norm.fit(params[:, 0])
 bins = np.arange(0, 6, 0.25)
 plt.hist(params[:, 0], bins, density=True)
