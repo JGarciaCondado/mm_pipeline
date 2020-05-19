@@ -9,6 +9,9 @@ from scipy.interpolate import splrep, splev
 from tifffile import imread
 import os
 import matplotlib.animation as animation
+from matplotlib import rc
+rc('text', usetex=True)
+
 
 directory = "Data"
 distributions = []
@@ -31,8 +34,8 @@ for dist in distributions:
     h = xorg[np.argmax(yorg)]
     h_dist.append(h)
 
-r_test = np.arange(4.4, 6.6, 0.1)
-sigmas = np.arange(2, 4, 0.1)
+r_test = np.arange(3.6, 5.5, 0.1)
+sigmas = np.arange(1.61, 4.83, 0.1)
 test_results = np.zeros((len(sigmas), len(distributions), len(r_test)))
 
 for z, sig in enumerate(sigmas):
@@ -43,9 +46,18 @@ for z, sig in enumerate(sigmas):
             test_results[z, j, i] = test
 
 mean_min_results = np.nanmean(np.min(test_results, axis=2), axis=1)
-plt.plot(sigmas, mean_min_results)
-plt.xlabel("Sigma")
-plt.ylabel("Kolmogorov-smirnov distance")
+plt.plot(sigmas*110, mean_min_results)
+plt.xlabel('$\sigma$ (nm)', fontsize=16)
+plt.ylabel("mean KS$_{optr}$", fontsize=16)
+plt.xticks(fontsize=16)
+plt.yticks(fontsize=16)
+plt.show()
+
+opt_sigma_rs = test_results[np.argmin(mean_min_results), :, :]
+print(sigmas[np.argmin(mean_min_results)]*110)
+r_s_indices = np.argmin(opt_sigma_rs, axis=1)
+distribution_r = [r_test[i]*0.11 for i in r_s_indices]
+plt.hist(distribution_r)
 plt.show()
 
 min_val = np.amin(np.amin(test_results, axis=2), axis=0)
