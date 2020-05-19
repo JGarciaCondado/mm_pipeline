@@ -9,7 +9,7 @@ from contour import boundary
 
 
 cells = np.load('../dataset/im_stack.npy')[:100]
-params = np.load('../dataset/params.npy')[:100]
+params = np.load('../dataset/params.npy', allow_pickle=True)[:100]
 
 model = tf.keras.models.load_model('../saved_model/segmentation')
 
@@ -40,6 +40,8 @@ for i, param in enumerate(params):
     diff_polygons.append(diff_descriptors)
 
 plt.plot(range(1,11), np.mean(diff_polygons, axis=0))
-plt.xlabel("Number of descriptors")
-plt.ylabel("Average percentage area difference")
+plt.xlabel("Number of descriptors", fontsize=12)
+plt.ylabel("Average RPAE", fontsize=12)
+plt.xticks(fontsize=12)
+plt.yticks(fontsize=12)
 plt.show()
