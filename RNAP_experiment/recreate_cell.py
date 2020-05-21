@@ -197,7 +197,7 @@ plt.show()
 r = calculate_r(cell, l, R, theta, shape, y_max, y_min, centroid)
 
 # Image bacteria
-bacteria = SpherocylindricalBacteria(l-r,r, R, theta, 800,  ex_wv, em_wv)
+bacteria = SpherocylindricalBacteria(l, r, R, theta, 800,  ex_wv, em_wv)
 microscope = Microscope(m, NA, ex_wv, em_wv, pixel_size)
 image = microscope.image_bacteria(bacteria, centroid, shape)
 im_rot = ndimage.rotate(image, -theta, reshape=False)
@@ -273,7 +273,7 @@ plt.show()
 #Find optimum with density matching
 opt_r, opt_sigma = grid_search_r_sigma(original_px, l, R, theta, shape, y_max, y_min, centroid, microscope, ex_wv, em_wv)
 # Image bacteria
-bacteria = SpherocylindricalBacteria(l-opt_r,opt_r, R, theta, 1700,  ex_wv, em_wv)
+bacteria = SpherocylindricalBacteria(l,opt_r, R, theta, 1700,  ex_wv, em_wv)
 microscope = Microscope(m, NA, ex_wv, em_wv, pixel_size)
 image = microscope.image_bacteria(bacteria, centroid, shape, sigma=opt_sigma)
 im_rot = ndimage.rotate(image, -theta, reshape=False)
