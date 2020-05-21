@@ -181,6 +181,7 @@ def calculate_r(cell, l, R, theta, shape, y_max, y_min, centroid):
     org = fwhm(range(len(counts)), counts)
     r_values = np.arange(0.4, 0.7, 0.01)
     prev_fwhm = 0.0
+    r_final = 0.5
     for r in r_values:
         bacteria = SpherocylindricalBacteria(l, r, R, theta, 1700,  ex_wv, em_wv)
         image = microscope.image_bacteria(bacteria, centroid, shape)
