@@ -2,20 +2,20 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 from tifffile import imread
-from extraction import extract_all_params, extract_params
+import sys
+sys.path.append('../')
+from calibration.extraction import extract_all_params, extract_params
 from scipy.stats import norm
 from scipy.interpolate import splrep, sproot, splev
 
-directory = "Data"
+directory = "data/extracted_cells/"
 params = []
 for f in os.listdir(directory):
-    if f[-4:] != ".tif":
+    if f[-4:] != ".npy":
         continue
-    im=imread(directory+'/'+f)
-    rm_indices = np.where(im==0.0)[0]
-    im = np.delete(im, rm_indices, axis=0)
+    im=np.load(directory+'/'+f)[0]
     try:
-        l, R, theta, centroid = extract_all_params(im, 40, 4.4)
+        l, R, theta, centroid = extract_all_params(im, 60, 6.6)
         cx = centroid[0]/im.shape[1]
         cy = centroid[1]/im.shape[0]
         params.append([l, R, theta, cx, cy])
@@ -44,14 +44,9 @@ title = "Fit results: mu = %.2f,  std = %.2f" % (mu_y, std_y)
 plt.title(title)
 plt.show()
 
+
+bins = np.arange(0, 8, 0.25)
 mu_l, std_l = norm.fit(params[:, 0])
-bins = np.arange(0, 6, 0.25)
-hist, bin_edges = np.histogram(params[:, 0], bins=bins, normed=True)
-spl = splrep(np.arange(0.125, 5.8, 0.25), hist)
-xim = np.arange(0, 6, 0.01)
-yim = splev(xim, spl)
-yim = [y if y>0.0 else 0.0 for y in yim]
-plt.plot(xim, yim)
 plt.hist(params[:, 0], bins, density=True)
 xmin, xmax = plt.xlim()
 x = np.linspace(xmin, xmax, 100)
