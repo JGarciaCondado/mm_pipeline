@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from shapely.geometry import LineString
 from scipy.ndimage.filters import gaussian_filter
 from scipy.stats import cauchy
+import warnings
 from matplotlib.colors import LinearSegmentedColormap
 
 class SpherocylindricalBacteria:
@@ -246,7 +247,7 @@ class Microscope:
         # Normalize so the number of phtons is the number of total_photons emitters
         self.image = np.round(self.image*np.sum(self.image)/total_photons)
         # Add noise
-        self.image = self.image + np.random.poisson(noise, shape)
+        self.image = self.image + gain*np.random.poisson(noise, shape)
 
         #TODO fix padding functions -> give padding shape 
         #TODO test that padding shape is not smaller than image
@@ -353,7 +354,7 @@ class Microscope:
                     self.image[int(round(xp)), int(round(yp))] += gain
 
         # Add noise
-        self.image = self.image + np.random.poisson(noise, shape)
+        self.image = self.image + gain*np.random.poisson(noise, shape)
 
         return self.image
 

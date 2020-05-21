@@ -275,7 +275,8 @@ opt_r, opt_sigma = grid_search_r_sigma(original_px, l, R, theta, shape, y_max, y
 # Image bacteria
 bacteria = SpherocylindricalBacteria(l,opt_r, R, theta, 1700,  ex_wv, em_wv)
 microscope = Microscope(m, NA, ex_wv, em_wv, pixel_size)
-image = microscope.image_bacteria(bacteria, centroid, shape, sigma=opt_sigma)
+print(opt_sigma)
+image = microscope.image_bacteria(bacteria, centroid, shape, sigma=opt_sigma, gain=10)
 im_rot = ndimage.rotate(image, -theta, reshape=False)
 im_rot = im_rot.astype('float')
 im_rot[im_rot == 0.0] = np.nan
@@ -307,7 +308,7 @@ plt.show()
 
 
 bacteria = SpherocylindricalBacteria(l-rc/11,rc/11, R, theta, 2000,  ex_wv, em_wv)
-im_c = microscope.image_bacteria_cauchy(bacteria, centroid, shape, gamma=gc, noise=200)
+im_c = microscope.image_bacteria_cauchy(bacteria, centroid, shape, gamma=gc, noise=200, gain=10)
 
 #Normalised images
 cell_norm = (cell-np.min(cell))/(np.max(cell)-np.min(cell))
