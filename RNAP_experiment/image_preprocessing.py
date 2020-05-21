@@ -131,11 +131,11 @@ def image_find_cells(im, im_fl, args, position, time, angle, ch_positions):
         if cells:
             # Show cells with final padding
             for start, end in cells:
-                cell = channel[start:end, :]
                 n_cells += 1
-                np.save('%s/pos%s_time%s_c_channel_%s_cell_%s.npy' % (args.output_directory, position, time, n_channels, n_cells), cell)
-                cell = fl_channel[start:end, :]
-                np.save('%s/pos%s_time%s_y_channel_%s_cell_%s.npy' % (args.output_directory, position, time, n_channels, n_cells), cell)
+                cell_seg = channel[start:end, :]
+                cell_fl = fl_channel[start:end, :]
+                cell = np.stack([cell_seg, cell_fl], axis=0)
+                np.save('%s/pos%s_time%s_channel_%s_cell_%s.npy' % (args.output_directory, position, time, n_channels, n_cells), cell)
         debug('Number of cells in channel %s: %s' % (n_channels, n_cells))
     debug('Number of channels found: %s' % (n_channels))
 
