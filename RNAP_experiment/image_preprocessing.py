@@ -1,8 +1,11 @@
 from tifffile import imread, imsave
 import numpy as np
 
+import re
 import argparse
 import os
+import sys
+sys.path.append('../')
 
 # Import require molyso function
 from molyso.generic.otsu import threshold_otsu
@@ -13,13 +16,15 @@ from molyso.mm.channel_detection import find_channels
 from molyso.generic.rotation import find_rotation, \
     apply_rotate_and_cleanup
 
+import matplotlib.pyplot as plt
+
 DEBUG = True
 
 def debug(string):
     if DEBUG:
         print(string)
 
-def remove_black_in_channel(ch, padding=2):
+def remove_black_in_channel(ch, fl_ch, padding=2):
     # Remove big black spaces at the top or bottom of channel
     # Perform otsu binarization
     binary_image = ch > (threshold_otsu(ch) * 1.0)
@@ -31,26 +36,30 @@ def remove_black_in_channel(ch, padding=2):
 
     # Determine areas of black
 
-    # Finid initial position
-    init_pos = 0
-    for _pos in blank_rows:
-        if init_pos == _pos:
-            init_pos += 1
-        else:
-            break
+    # First check that at least the number of blak rows is bigger than 2
+    if len(blank_rows) > 2:
+        # Finid initial position
+        init_pos = 0
+        for _pos in blank_rows:
+            if init_pos == _pos:
+                init_pos += 1
+            else:
+                break
 
-    # Find end position
-    end_pos = ch.shape[0] - 1
-    for _pos in np.flip(blank_rows):
-        if end_pos == _pos:
-            end_pos -= 1
-        else:
-            break
+        # Find end position
+        end_pos = ch.shape[0] - 1
+        for _pos in np.flip(blank_rows):
+            if end_pos == _pos:
+                end_pos -= 1
+            else:
+                break
 
-    if init_pos < padding or end_pos > ch.shape[0] - padding:
-        return ch[init_pos:end_pos]
+        if init_pos < padding or end_pos > ch.shape[0] - padding:
+            return ch[init_pos:end_pos], fl_ch[init_pos:end_pos]
+        else:
+            return ch[init_pos - padding:end_pos + padding], fl_ch[init_pos-padding:end_pos+padding]
     else:
-        return ch[init_pos - padding:end_pos + padding]
+        return ch, fl_ch
 
 def find_cells(ch):
     # Obtain vertical smoothed intensity profile of channel
@@ -59,109 +68,133 @@ def find_cells(ch):
     profile = hamming_smooth(profile, 10)
 
     # Find extrema in the profile by sliding window approach
-    extrema = find_extrema_and_prominence(profile, 15)
+    extrema = find_extrema_and_prominence(profile, 5)
 
     # Define cells positions
-    positions = [_pos for _pos in extrema.minima if extrema.prominence[_pos] > 0]
+    #Remove those with a minima that doesnt have a value smaller than 0
+    positions = [_pos for _pos in extrema.minima if profile[_pos]< -50]
     positions = positions + [profile.size]
-    # Check certain requirements to show they are cells
-    # If smaller than 10 too small and if biggger than 50 too big
-    return [[_last_pos, _pos] for _last_pos, _pos in zip(
-        [0] + positions, positions) if _pos - _last_pos > 10 and _pos - _last_pos < 60]
 
-def image_find_cells(im, args, position):
+    # Check certain requirements to show they are cells
+    # If smaller than 10 too small and if biggger than 70 too big
+    cells = [[_last_pos, _pos] for _last_pos, _pos in zip(
+             [0] + positions, positions)
+             if _pos - _last_pos > 10 and _pos - _last_pos < 80]
+
+    # Check that cells mean intensity value above some threshold
+    cells = [[start, end] for start, end in cells if np.mean(ch[start:end, :]) > 2.0*10**3]
+
+    return cells
+
+def image_find_cells(im, im_fl, args, position, time, angle, ch_positions):
 
     debug("File: %s" % args.image)
     debug("Position: %s" % position)
+    debug("Time: %s" % time)
 
-    # Apply rotation to both images
+    # Apply rotation to images
     im_rot = apply_rotate_and_cleanup(
-                im, find_rotation(im))[0]
+                im, angle)[0]
+    im_rot_fl = apply_rotate_and_cleanup(
+                im_fl, angle)[0]
+
+    # Define image width / channel width
+    channel_width = 30
+
+    # Number of channels
+    n_channels = 0
+
+    for center in ch_positions:
+        n_channels += 1
+
+        # Avoid indexing outside of bounds
+        if center < channel_width / 2:
+            center = channel_width / 2
+        elif center > im_rot.shape[1] - channel_width / 2:
+            center = im_rot.shape[1] - channel_width / 2
+
+        #TODO make channel and cell extraction just deal with positions
+        # crop all at the end at one go
+        # Get channel in the image
+        channel = im_rot[:, int(center - channel_width / 2):
+                               int(center + channel_width / 2)]
+        fl_channel = im_rot_fl[:, int(center - channel_width / 2):
+                               int(center + channel_width / 2)]
+
+        # Remove black ends of channel
+        channel, fl_channel = remove_black_in_channel(channel, fl_channel)
+
+        # Find cells in channel
+        cells = find_cells(channel)
+
+        n_cells = 0
+        if cells:
+            # Show cells with final padding
+            for start, end in cells:
+                cell = channel[start:end, :]
+                n_cells += 1
+                np.save('%s/pos%s_time%s_c_channel_%s_cell_%s.npy' % (args.output_directory, position, time, n_channels, n_cells), cell)
+                cell = fl_channel[start:end, :]
+                np.save('%s/pos%s_time%s_y_channel_%s_cell_%s.npy' % (args.output_directory, position, time, n_channels, n_cells), cell)
+        debug('Number of cells in channel %s: %s' % (n_channels, n_cells))
+    debug('Number of channels found: %s' % (n_channels))
+
+def find_ch_positions(im, angle):
+    # Correct rotation
+    im_rot = apply_rotate_and_cleanup(
+                im, angle)[0]
 
     # Find positions of channels and top and bottom of channel
     positions, (upper, lower) = find_channels(im_rot)
-
-    # Crop off top of channel and show
-    im_rot_cr = im_rot[upper:lower, :]
 
     # Find center of channels. The positions given by MOLYSO are not
     # accurate enough for fluorescent images.
     avg_positions = np.mean(positions, axis=1)
 
-    # Define image width / channel width
-    channel_width = 26
-
-    # Number of channels
-    n_channels = 0
-
-    for avg_position in avg_positions:
-        n_channels += 1
-
-        # Avoid indexing outside of bounds
-        if avg_position < channel_width / 2:
-            avg_position = channel_width / 2
-        elif avg_position > im_rot_cr.shape[0] - channel_width / 2:
-            avg_position = im_rot_cr.shape[0] - channel_width / 2
-
-        # Get channel in the image
-        channel = im_rot_cr[:, int(avg_position - channel_width / 2):
-                               int(avg_position + channel_width / 2)]
-
-        # Remove black ends of channel
-        channel = remove_black_in_channel(channel)
-
-        # Find cells in channel
-        cells = find_cells(channel)
-
-        # Final padding added to make standard size
-        default_height = 70
-
-        n_cells = 0
-
-        # Show cells with final padding
-        for start, end in cells:
-            pad = (default_height - end + start) / 2
-            if (pad).is_integer():
-                cell = np.pad(channel[start:end, :], ((int(pad), int(
-                    pad)), (0, 0)), mode='constant', constant_values=0)
-            else:
-                cell = np.pad(channel[start:end, :], ((
-                    int(pad - 0.5), int(pad + 0.5)), (0, 0)),
-                    mode='constant', constant_values=0)
-            n_cells += 1
-            imsave('%s/%s_%s_channel_%s_cell_%s.tif' % (args.output_directory, args.image, position, n_channels, n_cells), cell)
-        debug('Number of cells in channel %s: %s' % (n_channels, n_cells))
-
-    debug('Number of channels found: %s' % (n_channels))
-
-
-def extract_image(im, args):
-    #Flip images so the channels are up right
-    im = im
-
-    # Flip top image
-    im_top_flip = np.flip(im_top)
-
-    # Find cells in both
-    image_find_cells(im_bottom, args, "bottom")
-    image_find_cells(im_top_flip, args, "top")
-
+    return avg_positions
 
 def main(args):
 
     if not args.dir:
         # Load image as numpy array
+        im_type = re.findall(r'\b\w+\b', args.image)[3]
+        if im_type != 'c_raw':
+            raise TypeError("Give a segmentation image")
+        [position, time] = re.findall(r'[0-9]+', args.image)[-2:]
         im = imread("%s.tif" % args.image)
+        # Get second channel of image
+        fl_channel = args.image[:20] + 'y' + args.image[21:]
+        im_fl = imread("%s.tif" % fl_channel)
+        im_fl = np.flip(im_fl)
+        # Flip image to have correct orientation
+        im = np.flip(im)
+        # Extract image roation
+        angle = find_rotation(im)
+        # Extract channel average_position
+        ch_positions = find_ch_positions(im, angle)
         # Extract cells in image
-        extract_image(im, args)
+        image_find_cells(im, im_fl,  args, position, time, angle, ch_positions)
     else:
         directory = args.image
-        for f in os.listdir(directory):
-            if f[-4:] == ".tif":
-                im = imread(directory + f)
-                args.image = f[:-4]
+        for f in sorted(os.listdir(directory)):
+            if f[-4:] == ".tif" and f[10] == 'c':
+                # Obtain image and flip
+                im_seg = imread(directory + f)
+                im_seg = np.flip(im_seg)
+                # Get second channel of image
+                fl_channel = f[:10] + 'y' + f[11:]
+                im_fl = imread(directory + fl_channel)
+                im_fl = np.flip(im_fl)
+                # Obtain position and time
+                [position, time] = re.findall(r'[0-9]+', f)[-2:]
+                if time == '001':
+                    # Extract image roation
+                    angle = find_rotation(im_seg)
+                    # Extract channel average_position
+                    ch_positions = find_ch_positions(im_seg, angle)
                 # Extract cells in image
-                extract_image(im, args)
+                image_find_cells(im_seg, im_fl,  args, position, time, angle, ch_positions)
+
             else:
                 pass
 
