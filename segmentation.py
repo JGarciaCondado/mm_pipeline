@@ -35,6 +35,14 @@ def smooth_boundary(boundary, descriptors):
     contour = efd.reconstruct_contour(coeffs, locus=locus, num_points=100)
     return contour
 
+def smooth_fd_boundary(boundary, descriptors):
+    complex_boundary = np.array([x+1j*y for x, y in boundary])
+    dft = np.fft.fft(complex_boundary)
+    dft[1+descriptors:-descriptors] = 0
+    smoothed_boundary = np.fft.ifft(dft)
+    smoothed_boundary = np.stack((smoothed_boundary.real, smoothed_boundary.imag),-1)
+    return smoothed_boundary
+
 def create_mask(pred_mask):
   pred_mask = tf.argmax(pred_mask, axis=-1)
   pred_mask = pred_mask[..., tf.newaxis]

@@ -26,7 +26,7 @@ colors = ['r', 'g']
 for i, cell in enumerate(cells):
     axes[i].imshow(cell)
     axes[i].axis('off')
-    pixelated_mask = segment_cell(cell, model)
+    pixelated_mask = segment_cell(cell, model, height=50)
     boundary = boundary_from_pixelated_mask(pixelated_mask)
     smoothed_boundary = smooth_boundary(boundary, 5)
     boundaries = [boundary]#, smoothed_boundary]
