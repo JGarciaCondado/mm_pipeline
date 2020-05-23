@@ -46,7 +46,7 @@ for image, mask in test_dataset.take(1):
   sample_image, sample_mask = image, mask
 display([sample_image, sample_mask])
 
-model = UNet().create_model((80,30, 1), 2)
+model = UNet().create_model((50,26, 1), 2)
 model.compile(optimizer='adam',
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
@@ -81,7 +81,7 @@ model_history = model.fit(train_dataset, epochs=EPOCHS,
                           validation_data=val_dataset,
                           callbacks=[DisplayCallback()])
 # Save model
-model.save('RNAP_experiment/segmnet')
+#model.save('RNAP_experiment/segmnet')
 
 loss = model_history.history['loss']
 val_loss = model_history.history['val_loss']

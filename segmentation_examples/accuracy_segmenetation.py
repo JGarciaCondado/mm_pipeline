@@ -14,6 +14,30 @@ cells = np.load('../dataset/im_stack.npy')[:1000]
 images_gt = np.load('../dataset/im_gt_stack.npy')[:1000]
 
 model = tf.keras.models.load_model('../saved_model/segmentation')
+
+def display(display_list):
+  plt.figure(figsize=(7, 7))
+
+  title = ['Input Image', 'True Mask', 'Predicted Mask']
+
+  for i in range(len(display_list)):
+    plt.subplot(1, len(display_list), i+1)
+    plt.title(title[i])
+    plt.imshow(display_list[i][:,:,0])
+    plt.axis('off')
+  plt.show()
+
+def create_mask(pred_mask):
+  pred_mask = tf.argmax(pred_mask, axis=-1)
+  pred_mask = pred_mask[..., tf.newaxis]
+  return pred_mask[0]
+
+cell = cells[0]
+cell = cell[..., tf.newaxis]
+cell = (cell-np.min(cell))/(np.max(cell)-np.min(cell))
+
+display([cell, images_gt[0][..., tf.newaxis],
+         create_mask(model.predict(cell[tf.newaxis, ...]))])
 accuracy_ml = []
 acc_otsu = []
 for im, im_gt in zip(cells, images_gt):
