@@ -40,13 +40,12 @@ def create_mask(pred_mask):
   pred_mask = pred_mask[..., tf.newaxis]
   return pred_mask[0]
 
-def segment_cell(cell, model, pad_flag = True):
+def segment_cell(cell, model, pad_flag = True, height=80):
     # Normalize
     cell = (cell-np.min(cell))/(np.max(cell)-np.min(cell))
 
     if pad_flag:
         # Pad cell
-        height = 50
         pad = (height - cell.shape[0]) / 2
         if pad.is_integer():
             cell = np.pad(cell, ((int(pad), int(

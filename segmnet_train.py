@@ -4,8 +4,8 @@ from networks.segmnet import UNet
 import matplotlib.pyplot as plt
 
 # Load examples and labels
-examples = np.load('dataset/im_stack.npy')[:500]
-labels = np.load('dataset/im_gt_stack.npy')[:500]
+examples = np.load('RNAP_experiment/data/synthetic_dataset/im_stack.npy')
+labels = np.load('RNAP_experiment/data/synthetic_dataset/im_gt_stack.npy')
 
 DATASET_SIZE = examples.shape[0]
 
@@ -31,7 +31,7 @@ test_dataset = test_dataset.skip(val_size)
 #Model fit
 
 def display(display_list):
-  plt.figure(figsize=(15, 15))
+  plt.figure(figsize=(7, 7))
 
   title = ['Input Image', 'True Mask', 'Predicted Mask']
 
@@ -46,7 +46,7 @@ for image, mask in test_dataset.take(1):
   sample_image, sample_mask = image, mask
 display([sample_image, sample_mask])
 
-model = UNet().create_model((50,26, 1), 2)
+model = UNet().create_model((80,30, 1), 2)
 model.compile(optimizer='adam',
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
@@ -81,7 +81,7 @@ model_history = model.fit(train_dataset, epochs=EPOCHS,
                           validation_data=val_dataset,
                           callbacks=[DisplayCallback()])
 # Save model
-#model.save('saved_model/segmentation')
+model.save('RNAP_experiment/segmnet')
 
 loss = model_history.history['loss']
 val_loss = model_history.history['val_loss']
