@@ -22,16 +22,23 @@ axes = [ax1, ax2, ax3, ax4]
 scalebar = ScaleBar(0.11, 'um', frameon=False, color='w', location=2) # 1 pixel = 0.2 meter
 plt.gca().add_artist(scalebar)
 title = ['Pixelated Boundary', 'Smoothed Boundary']
-colors = ['r', 'g']
+colors = ['k', 'r']
+width = [1.0, 1.75]
 for i, cell in enumerate(cells):
     axes[i].imshow(cell)
     axes[i].axis('off')
     pixelated_mask = segment_cell(cell, model, height=50)
     boundary = boundary_from_pixelated_mask(pixelated_mask)
     smoothed_boundary = smooth_boundary(boundary, 5)
-    boundaries = [boundary]#, smoothed_boundary]
+    boundaries = [boundary, smoothed_boundary]
     for j in range(len(boundaries)):
-        axes[i].plot(boundaries[j][:,0], boundaries[j][:,1], colors[j], label=title[j], linewidth=1.5)
+        axes[i].plot(boundaries[j-1][:,0], boundaries[j-1][:,1], colors[j-1], label=title[j-1], linewidth=width[j-1])
+# Shrink current axis by 20%
+box = ax4.get_position()
+ax4.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
+# Put a legend to the right of the current axis
+ax4.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 plt.show()
 
 #Pixelation by otsu

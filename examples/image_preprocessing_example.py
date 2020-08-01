@@ -1,6 +1,7 @@
 from tifffile import imread
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib_scalebar.scalebar import ScaleBar
 import numpy as np
 
 # Make folders in directory above available
@@ -45,6 +46,12 @@ im_bottom_rot = apply_rotate_and_cleanup(
     im_bottom, find_rotation(im_bottom))[0]
 im_top_flip_rot = apply_rotate_and_cleanup(
     im_top_flip, find_rotation(im_top_flip))[0]
+
+plt.imshow(im_bottom_rot[390:, :-60], cmap=cm)
+scalebar = ScaleBar(0.11, 'um', frameon=False, color='w') # 1 pixel = 0.2 meter
+plt.gca().add_artist(scalebar)
+plt.axis('off')
+plt.show()
 
 # Find positions of channels and top and bottom of channel
 positions, (upper, lower) = find_channels(im_bottom_rot)

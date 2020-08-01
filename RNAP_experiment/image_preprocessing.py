@@ -123,6 +123,8 @@ def image_find_cells(im, im_fl, args, position, time, angle, ch_positions):
 
         # Remove black ends of channel
         channel, fl_channel = remove_black_in_channel(channel, fl_channel)
+        plt.imshow(channel)
+        plt.show()
 
         # Find cells in channel
         cells = find_cells(channel)
@@ -177,12 +179,12 @@ def main(args):
     else:
         directory = args.image
         for f in sorted(os.listdir(directory)):
-            if f[-4:] == ".tif" and f[10] == 'c':
+            if f[-4:] == ".tif" and f[11] == 'c':
                 # Obtain image and flip
                 im_seg = imread(directory + f)
                 im_seg = np.flip(im_seg)
                 # Get second channel of image
-                fl_channel = f[:10] + 'y' + f[11:]
+                fl_channel = f[:11] + 'y' + f[12:]
                 im_fl = imread(directory + fl_channel)
                 im_fl = np.flip(im_fl)
                 # Obtain position and time
@@ -190,8 +192,9 @@ def main(args):
                 if time == '001':
                     # Extract image roation
                     angle = find_rotation(im_seg)
+                    angle = 0
                     # Extract channel average_position
-                    ch_positions = find_ch_positions(im_seg, angle)
+                    ch_positions = find_ch_positions(im_seg, angle)+4
                 # Extract cells in image
                 image_find_cells(im_seg, im_fl,  args, position, time, angle, ch_positions)
 

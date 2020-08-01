@@ -5,6 +5,9 @@ from tifffile import imread
 from extraction import extract_all_params, extract_params
 from scipy.stats import norm
 from scipy.interpolate import splrep, sproot, splev
+from matplotlib import rc
+rc('text', usetex=True)
+plt.rcParams.update({'font.size': 16})
 
 directory = "Data"
 params = []
@@ -29,7 +32,7 @@ xmin, xmax = plt.xlim()
 x = np.linspace(xmin, xmax, 100)
 p = norm.pdf(x, mu_x, std_x)
 plt.plot(x, p, 'k', linewidth=2)
-plt.xlabel('centroid_x')
+plt.xlabel('centroid x')
 title = "Fit results: mu = %.2f,  std = %.2f" % (mu_x, std_x)
 plt.title(title)
 plt.show()
@@ -39,7 +42,7 @@ xmin, xmax = plt.xlim()
 x = np.linspace(xmin, xmax, 100)
 p = norm.pdf(x, mu_y, std_y)
 plt.plot(x, p, 'k', linewidth=2)
-plt.xlabel('centroid_y')
+plt.xlabel('centroid y')
 title = "Fit results: mu = %.2f,  std = %.2f" % (mu_y, std_y)
 plt.title(title)
 plt.show()
@@ -51,15 +54,17 @@ spl = splrep(np.arange(0.125, 5.8, 0.25), hist)
 xim = np.arange(0, 6, 0.01)
 yim = splev(xim, spl)
 yim = [y if y>0.0 else 0.0 for y in yim]
-plt.plot(xim, yim)
-plt.hist(params[:, 0], bins, density=True)
+#plt.plot(xim, yim)
+plt.hist(sorted(params[:, 0])[1:], bins, density=True, label='Experimental PDF')
 xmin, xmax = plt.xlim()
 x = np.linspace(xmin, xmax, 100)
 p = norm.pdf(x, mu_l, std_l)
-plt.plot(x, p, 'k', linewidth=2)
-plt.xlabel('l (micrometers)')
+plt.plot(x, p, 'k', linewidth=2, label='Gaussian fit')
+plt.xlabel(r'l ($\mu$m)')
+plt.ylabel(r'p(x)')
 title = "Fit results: mu = %.2f,  std = %.2f" % (mu_l, std_l)
 plt.title(title)
+plt.legend()
 plt.show()
 params[:, 1] = [abs(params[i,1]/params[i,0]) if abs(params[i,1]/params[i,0]) < 10 else 10 for i in range(len(params[:,1]))]
 bins = np.arange(0, 10.5, 0.5)

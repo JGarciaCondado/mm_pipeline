@@ -6,7 +6,7 @@ sys.path.append('../')
 from segmentation import segment_cell, boundary_from_pixelated_mask, smooth_boundary, display
 from shapely.geometry import Polygon
 from contour import boundary
-
+plt.rcParams.update({'font.size': 14})
 
 cells = np.load('../dataset/im_stack.npy')[:100]
 params = np.load('../dataset/params.npy', allow_pickle=True)[:100]

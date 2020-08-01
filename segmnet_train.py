@@ -2,10 +2,11 @@ import numpy as np
 import tensorflow as tf
 from networks.segmnet import UNet
 import matplotlib.pyplot as plt
+plt.rcParams.update({'font.size': 14})
 
 # Load examples and labels
-examples = np.load('RNAP_experiment/data/synthetic_dataset/im_stack.npy')
-labels = np.load('RNAP_experiment/data/synthetic_dataset/im_gt_stack.npy')
+examples = np.load('dataset/im_stack.npy')[:10000]
+labels = np.load('dataset/im_gt_stack.npy')[:10000]
 
 DATASET_SIZE = examples.shape[0]
 
@@ -85,17 +86,19 @@ model_history = model.fit(train_dataset, epochs=EPOCHS,
 
 loss = model_history.history['loss']
 val_loss = model_history.history['val_loss']
+np.save('loss', loss)
+np.save('val_loss', val_loss)
 
 epochs = range(EPOCHS)
 
 plt.figure()
 plt.plot(epochs, loss, 'r', label='Training loss')
 plt.plot(epochs, val_loss, 'bo', label='Validation loss')
-plt.title('Training and Validation Loss')
-plt.xlabel('Epoch')
-plt.ylabel('Loss Value')
+plt.title('Training and Validation Loss', fontsize=14)
+plt.xlabel('Epoch', fontsize=14)
+plt.ylabel('Loss Value', fontsize=14)
 plt.ylim([0, 1])
-plt.legend()
+plt.legend(fontsize=14)
 plt.show()
 
 show_predictions(test_dataset, 3)

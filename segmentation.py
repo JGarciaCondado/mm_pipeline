@@ -51,7 +51,6 @@ def create_mask(pred_mask):
 def segment_cell(cell, model, pad_flag = True, height=80):
     # Normalize
     cell = (cell-np.min(cell))/(np.max(cell)-np.min(cell))
-
     if pad_flag:
         # Pad cell
         pad = (height - cell.shape[0]) / 2

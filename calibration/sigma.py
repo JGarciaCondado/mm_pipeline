@@ -11,7 +11,7 @@ import os
 import matplotlib.animation as animation
 from matplotlib import rc
 rc('text', usetex=True)
-
+plt.rcParams.update({'font.size': 16})
 
 directory = "Data"
 distributions = []

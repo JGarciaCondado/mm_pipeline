@@ -23,6 +23,7 @@ from scipy.interpolate import splrep, sproot, splev
 from scipy.optimize import curve_fit
 from microscope_models import Microscope
 from models import Microscope, SpherocylindricalBacteria
+plt.rcParams.update({'font.size': 15})
 
 #TODO label an clean up all of the graphs + titles
 #TODO also nicely print all values it calculates
@@ -222,8 +223,8 @@ yim = [y if y>0.0 else 0.0 for y in yim]
 ax = plt.subplot(111)
 plt.plot(xim, yim, label="Model B-spline approximation of PDF")
 plt.plot(xorg, yorg, label="Experimental B-spline approximation of PDF")
-plt.ylabel('$p(x)$', fontsize=12)
-plt.xlabel('x (in pixels)', fontsize=12)
+plt.ylabel('$p(x)$', fontsize=16)
+plt.xlabel('x (in pixels)', fontsize=16)
 plt.title('Model image horizontal PDF with noise removed and matched FWHM')
 #TODO fix axe positioning
 plt.legend()
@@ -272,8 +273,8 @@ rg, gg, hg = optimum_r_and_psf(original_px)
 plt.plot(xorg, yorg, label='experimental pdf')
 plt.plot(np.arange(0, 26, 0.01), model_cauchy(np.arange(0,26, 0.01), rc, hc, gc), label="cauchy model pdf")
 plt.plot(np.arange(0, 26, 0.01), model(np.arange(0,26, 0.01), rg, hg, gg), label="gaussian model pdf")
-plt.xlabel('x (in pixels)', fontsize=14)
-plt.ylabel('$p(x)$', fontsize=14)
+plt.xlabel('x (in pixels)', fontsize=16)
+plt.ylabel('$p(x)$', fontsize=16)
 plt.legend()
 plt.show()
 #Find optimum with density matching
@@ -294,12 +295,10 @@ spl = splrep(range(len(image_model_px)), image_model_px)
 xim = np.linspace(0, len(image_model_px), 100)
 yim = splev(xim, spl)
 yim = [y if y>0.0 else 0.0 for y in yim]
-plt.plot(xim, yim, label="Model B-spline approximation of PDF", fontsize=14)
-plt.plot(xorg, yorg, label="Experimental B-spline approximation of PDF", fontsize=14)
-:q
-:q
-plt.ylabel('$p(x)$', fontsize=14)
-plt.xlabel('x (in pixels)', fontsize=14)
+plt.plot(xim, yim, label="Model B-spline approximation of PDF")
+plt.plot(xorg, yorg, label="Experimental B-spline approximation of PDF")
+plt.ylabel('$p(x)$', fontsize=16)
+plt.xlabel('x (in pixels)', fontsize=16)
 #plt.title('Model image horizontal PDF with noise removed and optimum r and sigma')
 #TODO fix axe positioning
 plt.legend()

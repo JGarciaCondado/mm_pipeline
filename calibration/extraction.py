@@ -53,9 +53,9 @@ def clean_centerline(centerline):
 def debranch_centerline(centerline):
     [end_points, spline, branch, end_branches] = centerline
     [max_coor, min_coor] = end_branches
+    removed = []
     if branch != []:
         #save all the removed for plotting purposes // maybe optional argument?
-        removed = []
         for end_coor in end_points:
             distanceToBranch = 1000
             closest_branch = 0.0

@@ -16,6 +16,7 @@ from scipy.ndimage.filters import gaussian_filter
 from scipy.stats import cauchy
 import warnings
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib_scalebar.scalebar import ScaleBar
 
 class SpherocylindricalBacteria:
     """ Build an epi-illumination microscope model.
@@ -161,7 +162,7 @@ class SpherocylindricalBacteria:
         ax.set_ylim([self.y_min, self.y_max])
         ax.set_zlim([self.z_min, self.z_max])
         plt.title("Bacteria samples in 3D")
-        plt.axis('scaled')
+#        plt.axis('scaled')
         plt.show()
 
     def plot_2D(self):
@@ -173,7 +174,7 @@ class SpherocylindricalBacteria:
         plt.plot(boundary_x, boundary_y, c='green', label='boundary')
         plt.xlim(self.x_min, self.x_max)
         plt.ylim(self.y_min, self.y_max)
-        plt.legend()
+#        plt.legend()
         plt.axis('scaled')
         plt.show()
 
@@ -501,6 +502,10 @@ class Microscope:
         # Display image
         #TODO change title
 #        plt.title("Bacteria Image")
+        scalebar = ScaleBar(0.11, 'um', frameon=False, color='w', location=1) # 1 pixel = 0.2 meter
+        plt.gca().add_artist(scalebar)
+        plt.xlabel('x (pixels)', fontsize=14)
+        plt.ylabel('y (pixels)', fontsize=14)
         plt.imshow(image, cmap=cm, origin="lower")
         plt.show()
 
