@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-start_exp = 'data/bigexp/'
-end_exp = 'data/endexp/'
+start_exp = 'data/bigexp/curated/'
+end_exp = 'data/endexp/curated/'
 
 exps = ['start', 'end']
 dir_exps = [start_exp, end_exp]
