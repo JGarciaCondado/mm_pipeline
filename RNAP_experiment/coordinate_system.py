@@ -133,24 +133,35 @@ def average_s_quantile(im, quantile, spline):
         distance.append(abs(dac))
     return np.mean(distance)
 
-def r_quantile(im, quantile, spline, r, pm):
+def r_quantile(im, quantile, spline, r, pm, exclude_caps=True):
     distance = []
+    first, last = spline.boundary
+    spline_endpoints = [first, last]
     for index in np.argwhere((im>=quantile[0]) & (im<=quantile[-1])):
         coor = Point((index[1], index[0]))
         # Calculate distance to pixel from centerline
         d2c = pm*spline.distance(coor)/r
         cp = nearest_points(spline, coor)[0]
+        if exclude_caps:
+            if cp in spline_endpoints:
+                continue
         d2c = np.sign(coor.x-cp.x)*d2c
         distance.append(d2c)
     return distance
 
-def s_quantile(im, quantile, spline):
+def s_quantile(im, quantile, spline, exclude_caps=True):
     distance = []
     centroid = spline.centroid
     distance_center = spline.project(centroid)
     total_length = spline.length/2
+    first, last = spline.boundary
+    spline_endpoints = [first, last]
     for index in np.argwhere((im>=quantile[0]) & (im<=quantile[-1])):
         coor = Point((index[1], index[0]))
+        cp = nearest_points(spline, coor)[0]
+        if exclude_caps:
+            if cp in spline_endpoints:
+                continue
         # Calculate distance to pixel from centerline
         dac = (spline.project(coor)-distance_center)/total_length
         distance.append(dac)

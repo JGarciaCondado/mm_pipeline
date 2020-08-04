@@ -12,7 +12,7 @@ plt.rcParams.update({'font.size': 16})
 rc('text', usetex=True)
 
 # Load cell
-directory = 'data/endexp/curated/'
+directory = 'data/bigexp/curated/'
 cells = []
 for f in os.listdir(directory):
     if f[-3:] == 'npy':
@@ -54,16 +54,11 @@ for cell in cells:
     qs = quantiles(cell_fl, 4)
     qsu = quantiles(cell_u, 4)
 
-    try:
-        centerline = extendcenterline(boundary, centerline)
-    # Average r
-        for q, qu, rq, rqu, sq, squ, i in zip(qs, qsu, rqs, rqsu, sqs, sqsu, range(4)):
-            rqs[i] = np.concatenate((rq, r_quantile(cell_fl, q, centerline, r, pm)))
-            rqsu[i] = np.concatenate((rqu, r_quantile(cell_u, qu, centerline, r, pm)))
-            sqs[i] = np.concatenate((sq, s_quantile(cell_fl, q, centerline)))
-            sqsu[i] = np.concatenate((squ, s_quantile(cell_u, qu, centerline)))
-    except:
-        pass
+    for q, qu, rq, rqu, sq, squ, i in zip(qs, qsu, rqs, rqsu, sqs, sqsu, range(4)):
+        rqs[i] = np.concatenate((rq, r_quantile(cell_fl, q, centerline, r, pm)))
+        rqsu[i] = np.concatenate((rqu, r_quantile(cell_u, qu, centerline, r, pm)))
+        sqs[i] = np.concatenate((sq, s_quantile(cell_fl, q, centerline)))
+        sqsu[i] = np.concatenate((squ, s_quantile(cell_u, qu, centerline)))
 
 rqs = np.array(rqs)
 rqsu = np.array(rqsu)

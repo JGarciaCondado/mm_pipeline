@@ -98,7 +98,7 @@ centerline = debranch_centerline(centerline)
 spline = np.sort(np.array(centerline[0], dtype=([('xcoor', float), ('ycoor', float)])),order='ycoor')
 spline = [point for point in spline]
 spline = LineString(spline)
-#spline = extendcenterline(smoothed_boundary, spline)
+spline = extendcenterline(smoothed_boundary, spline)
 spline_x, spline_y = zip(*list(spline.coords))
 plt.plot(spline_x, spline_y, color='k', label='Centerline')
 plt.legend()
