@@ -5,6 +5,7 @@ import sys
 sys.path.append('../')
 from segmentation import segment_cell
 from coordinate_system import deblur_ch2, normalize_ch2, get_boundary, boundary2centerline, estimate_r, volume_elements, fluorescence_density, quantiles, r_quantile, s_quantile, extendcenterline
+from scipy.ndimage import shift
 import matplotlib.pyplot as plt
 from matplotlib import rc
 np.set_printoptions(threshold=sys.maxsize)
@@ -36,11 +37,13 @@ for cell in cells:
     pixelated_mask = segment_cell(cell[0], model, pad_flag=True)
 
     # Normalize ch2
+    cell[1] = shift(cell[1], [0.5, -0.2])
     cell_fl = normalize_ch2(cell[1], pixelated_mask)
     cell_u = normalize_ch2(cell[0], pixelated_mask)
     x, y = zip(*np.argwhere(pixelated_mask==0))
     cell_fl[x,y] = np.nan
     cell_u[x,y] = np.nan
+
 
     # Get boundary
     boundary = get_boundary(pixelated_mask)
